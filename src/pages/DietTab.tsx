@@ -1,17 +1,15 @@
-import {
-  BowlSalad24Regular,
-  DataTrending24Regular,
-  Scales24Regular,
-  Target24Regular,
-} from "@fluentui/react-icons";
+import { DataTrending24Regular, Scales24Regular, Target24Regular } from "@fluentui/react-icons";
 import { useEffect, useMemo, useState } from "react";
+import FeedingCard from "../components/FeedingCard";
+import FeedingLogSheet from "../components/FeedingLogSheet";
 import type { WeightChartPoint } from "../components/WeightChart";
 import WeightLogSheet from "../components/WeightLogSheet";
 import WeightTrendCard from "../components/WeightTrendCard";
 import { type DietPhaseKey, dietPhases } from "../config/nutrition";
-import type { WeightLog } from "../db";
+import type { FeedingLog, WeightLog } from "../db";
 import { db } from "../db";
 import {
+  calcDailyGrams,
   calcDietDailyKcal,
   calcDietProgressPercent,
   calcMer,
@@ -19,6 +17,7 @@ import {
   getDietPhaseKey,
 } from "../lib/calculator";
 import { formatShortDate, toLocalDateString } from "../lib/date";
+import { summarizeFeeding } from "../lib/feeding";
 import { summarizeWeightLogs } from "../lib/weightLog";
 import { useCatStore } from "../stores/catStore";
 import { useFoodStore } from "../stores/foodStore";
@@ -47,6 +46,10 @@ async function loadWeightLogs(): Promise<WeightLog[]> {
   return db.weightLogs.orderBy("date").reverse().toArray();
 }
 
+async function loadFeedingLog(date: string): Promise<FeedingLog | null> {
+  return (await db.feedingLogs.where("date").equals(date).first()) ?? null;
+}
+
 export default function DietTab() {
   const cat = useCatStore((s) => s.cat);
   const updateCat = useCatStore((s) => s.update);
@@ -54,14 +57,26 @@ export default function DietTab() {
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<WeightLog | null>(null);
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
+  const [feedingSheetOpen, setFeedingSheetOpen] = useState(false);
+  const [todayFeeding, setTodayFeeding] = useState<FeedingLog | null>(null);
+
+  const today = toLocalDateString();
 
   const refreshWeightLogs = () => {
     void loadWeightLogs().then(setWeightLogs);
   };
 
+  const refreshFeeding = () => {
+    void loadFeedingLog(today).then(setTodayFeeding);
+  };
+
   useEffect(() => {
     refreshWeightLogs();
   }, []);
+
+  useEffect(() => {
+    refreshFeeding();
+  }, [today]);
 
   const species = cat?.species ?? "cat";
   const week = cat ? getDietWeek(cat.dietStartDate) : 1;
@@ -74,11 +89,27 @@ export default function DietTab() {
   const mer = cat ? calcMer(cat.weightKg, cat.lifeStage, cat.activity, cat.species) : 0;
   const dryFood = foods.find((f) => f.foodType === "dry");
   const wetFood = foods.find((f) => f.foodType === "wet");
+  const hasDry = !!dryFood && dryFood.kcalPerKg > 0;
+  const hasWet = !!wetFood && wetFood.kcalPerKg > 0;
+  const isMixed = hasDry && hasWet;
+  const dryKcalPerKg = dryFood?.kcalPerKg ?? 0;
+  const wetKcalPerKg = wetFood?.kcalPerKg ?? 0;
 
-  const dryGrams =
-    dryFood && dryFood.kcalPerKg > 0 ? Math.round((dailyKcal / dryFood.kcalPerKg) * 1000) : null;
-  const wetGrams =
-    wetFood && wetFood.kcalPerKg > 0 ? Math.round((dailyKcal / wetFood.kcalPerKg) * 1000) : null;
+  const suggestedDryGrams = hasDry ? Math.round(calcDailyGrams(dailyKcal, dryKcalPerKg)) : null;
+  const suggestedWetGrams = hasWet ? Math.round(calcDailyGrams(dailyKcal, wetKcalPerKg)) : null;
+
+  const feedingSummary = summarizeFeeding(todayFeeding, dryKcalPerKg, wetKcalPerKg, dailyKcal);
+
+  const saveFeedingLog = async (date: string, dryGrams: number | null, wetGrams: number | null) => {
+    const existing = await db.feedingLogs.where("date").equals(date).first();
+    if (existing?.id) {
+      await db.feedingLogs.update(existing.id, { dryGrams, wetGrams });
+    } else {
+      await db.feedingLogs.add({ date, dryGrams, wetGrams });
+    }
+    refreshFeeding();
+    setFeedingSheetOpen(false);
+  };
 
   const chartData: WeightChartPoint[] = useMemo(() => {
     if (!weightLogs.length) return [];
@@ -192,19 +223,15 @@ export default function DietTab() {
         </div>
       </section>
 
-      <section className="rounded-card bg-card p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-medium text-muted">今日喂食量</h2>
-        <div className="flex flex-col gap-2 text-base">
-          <p className="flex items-center gap-2">
-            <BowlSalad24Regular className="size-5 text-accent" aria-hidden />
-            干粮 {dryGrams !== null ? `${dryGrams} g` : "— （未配置）"}
-          </p>
-          <p className="flex items-center gap-2">
-            <BowlSalad24Regular className="size-5 text-accent" aria-hidden />
-            湿粮 {wetGrams !== null ? `${wetGrams} g` : "— （未配置）"}
-          </p>
-        </div>
-      </section>
+      <FeedingCard
+        hasDry={hasDry}
+        hasWet={hasWet}
+        suggestedDryGrams={suggestedDryGrams}
+        suggestedWetGrams={suggestedWetGrams}
+        todayLog={todayFeeding}
+        summary={feedingSummary}
+        onRecord={() => setFeedingSheetOpen(true)}
+      />
 
       <WeightTrendCard
         logs={weightLogs}
@@ -226,6 +253,21 @@ export default function DietTab() {
             setEditingLog(null);
           }}
           onSave={saveWeightLog}
+        />
+      ) : null}
+
+      {feedingSheetOpen ? (
+        <FeedingLogSheet
+          hasDry={hasDry}
+          hasWet={hasWet}
+          dryKcalPerKg={dryKcalPerKg}
+          wetKcalPerKg={wetKcalPerKg}
+          targetKcal={dailyKcal}
+          initialDryGrams={todayFeeding?.dryGrams ?? (isMixed ? 0 : (suggestedDryGrams ?? 0))}
+          initialWetGrams={todayFeeding?.wetGrams ?? (isMixed ? 0 : (suggestedWetGrams ?? 0))}
+          initialDate={today}
+          onClose={() => setFeedingSheetOpen(false)}
+          onSave={saveFeedingLog}
         />
       ) : null}
     </div>

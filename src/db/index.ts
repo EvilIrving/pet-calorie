@@ -36,10 +36,19 @@ export interface WeightLog {
   weightKg: number;
 }
 
+/** 每日实际喂食量（每天一条，同日覆盖）；未喂某类粮时该字段为 null */
+export interface FeedingLog {
+  id?: number;
+  date: string;
+  dryGrams: number | null;
+  wetGrams: number | null;
+}
+
 class CatDatabase extends Dexie {
   cat!: EntityTable<CatProfile, "id">;
   foods!: EntityTable<SavedFood, "id">;
   weightLogs!: EntityTable<WeightLog, "id">;
+  feedingLogs!: EntityTable<FeedingLog, "id">;
 
   constructor() {
     super("react-cat");
@@ -63,6 +72,12 @@ class CatDatabase extends Dexie {
             row.onboardingDone = row.onboardingDone ?? true;
           });
       });
+    this.version(3).stores({
+      cat: "++id",
+      foods: "++id, foodType, createdAt",
+      weightLogs: "++id, date",
+      feedingLogs: "++id, &date",
+    });
   }
 }
 
