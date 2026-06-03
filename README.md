@@ -99,3 +99,4 @@ pnpm test
 
 - [`docs/SPEC.md`](docs/SPEC.md) — Information architecture, UX, calculations, tech choices
 - [`AGENTS.md`](AGENTS.md) — Component guidelines and repo constraints
+- [`LICENSE`](LICENSE) — MIT License

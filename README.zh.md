@@ -99,3 +99,4 @@ pnpm test
 
 - [`docs/SPEC.md`](docs/SPEC.md) — 信息架构、UX、计算逻辑、技术选型
 - [`AGENTS.md`](AGENTS.md) — 组件编写与仓库约束
+- [`LICENSE`](LICENSE) — MIT 许可证
