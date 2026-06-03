@@ -49,6 +49,17 @@ App
 - `名字` → 使用普通文本输入，但高度、间距与按压区域仍需满足移动端触控目标。
 - `日期` → 默认今天，提供“今天 / 昨天”快捷按钮；需要补录历史记录时再进入日期选择，避免打断主流程。
 
+`<Stepper>` / `<WheelPicker>` 参考同目录 `docs/demo-stepper.html` 实现，组件化时需保留以下行为：
+
+- Stepper 布局为「减号按钮 / 数值输入 / 加号按钮」，按钮触控尺寸不小于 56px，按下态需有缩放或底色变化。
+- Stepper 中间输入框使用大字号、居中、等宽数字；宽度随内容长度自适应，单位紧跟数值显示。
+- Stepper 输入框必须使用 `type="text"`，按字段设置 `inputMode="decimal"` 或 `inputMode="numeric"`；禁止使用 `<input type="number">`。
+- Stepper 输入过程中只保留数字和小数点；失焦时按 `min / max / decimals` 夹取并格式化。
+- Stepper 单击 `+ / -` 立即变化；长按 400ms 后开始连续变化，并逐步加速；每次有效变化触发轻震动。
+- WheelPicker 基于 `scroll-snap` 实现吸附居中，显示 5 行，首尾留白保证边界值可滚到中央。
+- WheelPicker 当前项需高亮并轻微放大；滚动停止后触发轻震动。
+- 所有震动调用均需先判断 `navigator.vibrate` 是否存在，保证非支持环境正常运行。
+
 ### 热量计算 Tab
 
 ```
