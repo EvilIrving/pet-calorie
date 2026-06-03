@@ -66,14 +66,14 @@ export default function FeedingLogSheet({
         <div className="flex gap-2">
           <button
             type="button"
-            className="min-h-11 flex-1 rounded-2xl bg-surface px-4 py-3 text-sm text-muted touch-manipulation active:bg-line/40"
+            className="min-h-11 flex-1 rounded-xl bg-surface px-3 py-2 text-sm text-muted touch-manipulation active:bg-line/40"
             onClick={onClose}
           >
             取消
           </button>
           <button
             type="button"
-            className="min-h-11 flex-1 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
+            className="min-h-11 flex-1 rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
             onClick={() => void onSave(logDate, hasDry ? dryGrams : null, hasWet ? wetGrams : null)}
           >
             保存
@@ -81,15 +81,15 @@ export default function FeedingLogSheet({
         </div>
       }
     >
-      <p className="mb-3 text-sm font-medium text-accent">{modeLabel(mode)}</p>
+      <p className="mb-2 text-sm font-medium text-accent">{modeLabel(mode)}</p>
 
-      <div className="rounded-2xl border border-line p-3">
+      <div className="rounded-xl border border-line p-2.5">
         <Calendar value={logDate} max={today} onChange={setLogDate} aria-label="选择喂食日期" />
       </div>
 
       {hasDry ? (
-        <div className="mt-4">
-          <p className="mb-2 flex items-center gap-1.5 text-sm text-muted">
+        <div className="mt-3">
+          <p className="mb-1.5 flex items-center gap-1.5 text-sm text-muted">
             <BowlSalad24Regular className="size-4 text-accent" aria-hidden />
             干粮
           </p>
@@ -108,8 +108,8 @@ export default function FeedingLogSheet({
       ) : null}
 
       {hasWet ? (
-        <div className="mt-4">
-          <p className="mb-2 flex items-center gap-1.5 text-sm text-muted">
+        <div className="mt-3">
+          <p className="mb-1.5 flex items-center gap-1.5 text-sm text-muted">
             <BowlSalad24Regular className="size-4 text-accent" aria-hidden />
             湿粮
           </p>
@@ -127,7 +127,7 @@ export default function FeedingLogSheet({
         </div>
       ) : null}
 
-      <div className="mt-4 flex items-center justify-between rounded-2xl bg-surface px-4 py-3">
+      <div className="mt-3 flex min-h-11 items-center justify-between rounded-xl bg-surface px-3 py-2">
         <span className="text-sm text-muted">实际 {actualKcal} kcal</span>
         <span className="text-sm font-medium text-ink">{deltaText(deltaKcal)}</span>
       </div>

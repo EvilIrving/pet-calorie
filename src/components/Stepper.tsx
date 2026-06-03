@@ -135,13 +135,13 @@ export default function Stepper({
 
   return (
     <div
-      className="grid grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-3.5"
+      className="grid grid-cols-[48px_minmax(0,1fr)_48px] items-center gap-2"
       role="group"
       aria-label={ariaLabel}
     >
       <button
         type="button"
-        className="flex size-14 shrink-0 items-center justify-center rounded-[18px] bg-[#f0f2f5] text-accent transition-transform duration-75 active:scale-[0.92] active:bg-accent active:text-white disabled:opacity-35 touch-manipulation [&_svg]:pointer-events-none"
+        className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#f0f2f5] text-accent transition-transform duration-75 active:scale-[0.92] active:bg-accent active:text-white disabled:opacity-35 touch-manipulation [&_svg]:pointer-events-none"
         aria-label="减少"
         disabled={atMin}
         onPointerDown={(e) => {
@@ -161,7 +161,7 @@ export default function Stepper({
             type="text"
             inputMode={inputMode}
             enterKeyHint="done"
-            className="no-spin max-w-full border-0 bg-transparent text-center text-[40px] font-bold tracking-tight text-ink outline-none tabular-nums"
+            className="no-spin max-w-full border-0 bg-transparent text-center text-[34px] font-bold tracking-tight text-ink outline-none tabular-nums"
             style={{ width: `${ch}ch` }}
             value={draft}
             aria-label={ariaLabel ?? "数值"}
@@ -184,7 +184,7 @@ export default function Stepper({
 
       <button
         type="button"
-        className="flex size-14 shrink-0 items-center justify-center rounded-[18px] bg-[#f0f2f5] text-accent transition-transform duration-75 active:scale-[0.92] active:bg-accent active:text-white disabled:opacity-35 touch-manipulation [&_svg]:pointer-events-none"
+        className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#f0f2f5] text-accent transition-transform duration-75 active:scale-[0.92] active:bg-accent active:text-white disabled:opacity-35 touch-manipulation [&_svg]:pointer-events-none"
         aria-label="增加"
         disabled={atMax}
         onPointerDown={(e) => {

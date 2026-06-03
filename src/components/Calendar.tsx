@@ -39,7 +39,7 @@ export default function Calendar({
 
   return (
     <div role="group" aria-label={ariaLabel} className="select-none">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-1.5 flex items-center justify-between">
         <button
           type="button"
           className="flex size-11 items-center justify-center rounded-full text-ink touch-manipulation active:bg-surface"
@@ -64,7 +64,7 @@ export default function Calendar({
 
       <div className="grid grid-cols-7 text-center text-xs text-muted">
         {WEEKDAYS.map((w) => (
-          <span key={w} className="py-1">
+          <span key={w} className="py-0.5">
             {w}
           </span>
         ))}

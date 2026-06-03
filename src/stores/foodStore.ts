@@ -6,6 +6,7 @@ interface FoodState {
   loaded: boolean;
   load: () => Promise<void>;
   save: (food: Omit<SavedFood, "id" | "createdAt">) => Promise<void>;
+  clear: () => void;
 }
 
 export const useFoodStore = create<FoodState>((set) => ({
@@ -23,4 +24,6 @@ export const useFoodStore = create<FoodState>((set) => ({
     const foods = await db.foods.orderBy("createdAt").reverse().toArray();
     set({ foods });
   },
+
+  clear: () => set({ foods: [], loaded: true }),
 }));

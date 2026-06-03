@@ -189,16 +189,16 @@ export default function DietTab() {
   };
 
   if (!cat) {
-    return <p className="py-12 text-center text-muted">加载中…</p>;
+    return <p className="py-8 text-center text-sm text-muted">加载中…</p>;
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <section className="rounded-card bg-card p-5 shadow-sm">
+    <div className="flex flex-col gap-3">
+      <section className="rounded-card bg-card p-4 shadow-sm">
         {!cat.dietStartDate ? (
           <button
             type="button"
-            className="mb-4 w-full min-h-11 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
+            className="mb-3 w-full min-h-11 rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
             onClick={startDiet}
           >
             开始减肥计划
@@ -206,21 +206,21 @@ export default function DietTab() {
         ) : null}
 
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-base font-semibold text-ink">第 {week} 周目标</p>
+          <p className="text-sm font-semibold text-ink">第 {week} 周目标</p>
           <p className="text-xs font-medium text-muted">
             固定速率 {(safePlan.rateMin * 100).toFixed(1)}–{(safePlan.rateMax * 100).toFixed(1)}
             %/周
           </p>
         </div>
 
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface">
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface">
           <div
             className="h-full rounded-full bg-phase-emerald transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted">
+        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted">
           <span className="flex items-center gap-1">
             <Target24Regular className="size-4 text-accent" aria-hidden />
             {formatKcalRange(dailyKcalRange.min, dailyKcalRange.max)} kcal/天

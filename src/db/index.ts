@@ -72,6 +72,19 @@ export async function initDb(): Promise<void> {
   await db.open();
 }
 
+/** 清空全部本地数据并创建默认宠物档案（用于设置页「删除」后重新开始） */
+export async function resetAllAppData(): Promise<CatProfile> {
+  await db.transaction("rw", db.cat, db.foods, db.weightLogs, db.feedingLogs, async () => {
+    await Promise.all([
+      db.cat.clear(),
+      db.foods.clear(),
+      db.weightLogs.clear(),
+      db.feedingLogs.clear(),
+    ]);
+  });
+  return getOrCreateCat();
+}
+
 export async function getOrCreateCat(): Promise<CatProfile> {
   const existing = await db.cat.orderBy("id").first();
   if (existing) {

@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import { type CatProfile, db, getOrCreateCat } from "../db";
+import { type CatProfile, db, getOrCreateCat, resetAllAppData } from "../db";
 
 interface CatState {
   cat: CatProfile | null;
   loaded: boolean;
   load: () => Promise<void>;
   update: (patch: Partial<Omit<CatProfile, "id" | "updatedAt">>) => Promise<void>;
+  resetAll: () => Promise<void>;
 }
 
 export const useCatStore = create<CatState>((set, get) => ({
@@ -28,5 +29,10 @@ export const useCatStore = create<CatState>((set, get) => ({
     };
     await db.cat.put(updated);
     set({ cat: updated });
+  },
+
+  resetAll: async () => {
+    const cat = await resetAllAppData();
+    set({ cat, loaded: true });
   },
 }));

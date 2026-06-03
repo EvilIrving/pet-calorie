@@ -51,7 +51,7 @@ export default function WeightTrendCard({
   const [historyOpen, setHistoryOpen] = useState(false);
 
   return (
-    <section className="rounded-card bg-card p-5 shadow-sm">
+    <section className="rounded-card bg-card p-4 shadow-sm">
       <div className="flex items-start justify-between">
         <h2 className="text-sm font-medium text-muted">体重记录</h2>
         <button
@@ -66,8 +66,8 @@ export default function WeightTrendCard({
 
       {summary ? (
         <>
-          <div className="mt-3 flex items-end gap-3">
-            <p className="text-4xl font-bold leading-none text-ink tabular-nums">
+          <div className="mt-2 flex items-end gap-2">
+            <p className="text-3xl font-bold leading-none text-ink tabular-nums">
               {summary.currentKg.toFixed(1)}
               <span className="ml-1 text-base font-medium text-muted">kg</span>
             </p>
@@ -77,13 +77,13 @@ export default function WeightTrendCard({
             <p className="mt-1 text-xs text-muted">最近称重 {formatShortDate(latestDate)}</p>
           ) : null}
 
-          <div className="mt-4">
+          <div className="mt-3">
             <WeightChart data={chartData} />
           </div>
 
           <button
             type="button"
-            className="mt-3 flex w-full items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm text-muted touch-manipulation active:bg-line/30"
+            className="mt-2 flex w-full min-h-11 items-center justify-between rounded-xl bg-surface px-3 py-2 text-sm text-muted touch-manipulation active:bg-line/30"
             aria-expanded={historyOpen}
             onClick={() => setHistoryOpen((o) => !o)}
           >
@@ -122,7 +122,7 @@ export default function WeightTrendCard({
           ) : null}
         </>
       ) : (
-        <p className="mt-4 py-6 text-center text-sm text-muted">
+        <p className="mt-3 py-4 text-center text-sm text-muted">
           还没有体重记录，点「记录」开始追踪吧
         </p>
       )}

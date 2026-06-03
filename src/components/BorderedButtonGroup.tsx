@@ -15,7 +15,7 @@ export default function BorderedButtonGroup<T extends string>({
     <div
       role="group"
       aria-label={ariaLabel}
-      className="grid grid-cols-2 overflow-hidden rounded-2xl border border-line"
+      className="grid grid-cols-2 overflow-hidden rounded-xl border border-line"
     >
       {options.map((opt, i) => {
         const selected = opt.value === value;
@@ -23,7 +23,7 @@ export default function BorderedButtonGroup<T extends string>({
           <button
             key={opt.value}
             type="button"
-            className={`min-h-11 px-3 py-3 text-sm font-medium transition-colors touch-manipulation ${
+            className={`min-h-11 px-3 py-2 text-sm font-medium transition-colors touch-manipulation ${
               i > 0 ? "border-l border-line" : ""
             } ${selected ? "bg-accent/10 text-accent" : "bg-card text-muted active:bg-surface"}`}
             aria-pressed={selected}

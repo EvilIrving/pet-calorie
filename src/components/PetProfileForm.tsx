@@ -26,6 +26,9 @@ export interface PetProfileFormProps {
   initial: CatProfile;
   submitLabel: string;
   onSubmit: (values: PetProfileFormValues) => void | Promise<void>;
+  /** 设置页：已完成引导的宠物可删除全部数据 */
+  onDelete?: () => void | Promise<void>;
+  deleteLabel?: string;
 }
 
 function clampWeight(species: Species, kg: number): number {
@@ -33,7 +36,13 @@ function clampWeight(species: Species, kg: number): number {
   return Math.min(max, Math.max(min, kg));
 }
 
-export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetProfileFormProps) {
+export default function PetProfileForm({
+  initial,
+  submitLabel,
+  onSubmit,
+  onDelete,
+  deleteLabel = "删除宠物及全部数据",
+}: PetProfileFormProps) {
   const [species, setSpecies] = useState<Species>(initial.species);
   const [name, setName] = useState(initial.name);
   const [weightKg, setWeightKg] = useState(initial.weightKg);
@@ -74,14 +83,14 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
 
   return (
     <form
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-3.5"
       onSubmit={(e) => {
         e.preventDefault();
         handleSubmit();
       }}
     >
       <div>
-        <p className="mb-3 text-sm text-muted">物种</p>
+        <p className="mb-2 text-sm text-muted">物种</p>
         <SegmentControl
           aria-label="物种"
           options={(Object.entries(speciesLabels) as [Species, string][]).map(([value, label]) => ({
@@ -94,7 +103,7 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
       </div>
 
       <div>
-        <label htmlFor="pet-name" className="mb-2 block text-sm text-muted">
+        <label htmlFor="pet-name" className="mb-1.5 block text-sm text-muted">
           名字
         </label>
         <input
@@ -102,14 +111,14 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
           type="text"
           autoComplete="off"
           enterKeyHint="done"
-          className="min-h-11 w-full rounded-2xl border border-line bg-card px-4 py-3.5 text-lg text-ink touch-manipulation outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="min-h-11 w-full rounded-xl border border-line bg-card px-3 py-2.5 text-base text-ink touch-manipulation outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
       </div>
 
       <div>
-        <p className="mb-2 text-sm text-muted">体重</p>
+        <p className="mb-1.5 text-sm text-muted">体重</p>
         <DecimalWheelPicker
           species={species}
           value={weightKg}
@@ -119,7 +128,7 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
       </div>
 
       <div>
-        <p className="mb-2 text-sm text-muted">目标体重</p>
+        <p className="mb-1.5 text-sm text-muted">目标体重</p>
         <DecimalWheelPicker
           species={species}
           value={idealWeightKg}
@@ -129,12 +138,12 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
       </div>
 
       <div>
-        <p className="mb-3 text-sm text-muted">年龄段</p>
+        <p className="mb-2 text-sm text-muted">年龄段</p>
         <AgeProgressBar species={species} ageMonths={ageMonths} onAgeMonthsChange={setAgeMonths} />
       </div>
 
       <div>
-        <p className="mb-3 text-sm text-muted">是否绝育</p>
+        <p className="mb-2 text-sm text-muted">是否绝育</p>
         <SegmentControl
           aria-label="是否绝育"
           options={[
@@ -147,7 +156,7 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
       </div>
 
       <div>
-        <p className="mb-3 text-sm text-muted">活动量</p>
+        <p className="mb-2 text-sm text-muted">活动量</p>
         <SegmentControl
           aria-label="活动量"
           compact
@@ -161,10 +170,20 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
 
       <button
         type="submit"
-        className="min-h-11 w-full rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
+        className="min-h-11 w-full rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
       >
         {submitLabel}
       </button>
+
+      {onDelete ? (
+        <button
+          type="button"
+          className="min-h-11 w-full rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium text-muted touch-manipulation active:bg-surface"
+          onClick={() => void onDelete()}
+        >
+          {deleteLabel}
+        </button>
+      ) : null}
     </form>
   );
 }

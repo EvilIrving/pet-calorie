@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { vibrateWheel } from "../lib/haptics";
 
-const ROW_HEIGHT = 40;
+const ROW_HEIGHT = 36;
 const VISIBLE_ROWS = 5;
 const WHEEL_HEIGHT = ROW_HEIGHT * VISIBLE_ROWS;
 
@@ -92,7 +92,7 @@ export default function WheelPicker({
     <div className="relative flex-1 min-w-0">
       {showSelectionBand ? (
         <div
-          className="pointer-events-none absolute inset-x-0 top-1/2 z-10 h-10 -translate-y-1/2 rounded-xl bg-accent/10"
+          className="pointer-events-none absolute inset-x-0 top-1/2 z-10 h-9 -translate-y-1/2 rounded-lg bg-accent/10"
           aria-hidden
         />
       ) : null}
@@ -109,7 +109,7 @@ export default function WheelPicker({
             key={n}
             data-wheel-item
             aria-hidden={n !== clamped}
-            className={`snap-center text-[22px] font-semibold tabular-nums transition-[color,transform] duration-150 ${
+            className={`snap-center text-xl font-semibold tabular-nums transition-[color,transform] duration-150 ${
               n === clamped ? "scale-[1.12] text-accent" : "text-muted"
             }`}
             style={{ height: ROW_HEIGHT, lineHeight: `${ROW_HEIGHT}px` }}

@@ -20,11 +20,11 @@ export interface WeightChartProps {
 
 export default function WeightChart({ data }: WeightChartProps) {
   if (data.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted">暂无体重记录</p>;
+    return <p className="py-5 text-center text-sm text-muted">暂无体重记录</p>;
   }
 
   return (
-    <div className="h-48 w-full">
+    <div className="h-36 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}

@@ -20,7 +20,7 @@ function gramsText(grams: number | null): string {
 
 function FoodRow({ label, value }: { label: string; value: string }) {
   return (
-    <p className="flex items-center gap-2 text-base text-ink">
+    <p className="flex items-center gap-2 text-sm text-ink">
       <BowlSalad24Regular className="size-5 text-accent" aria-hidden />
       <span className="text-muted">{label}</span>
       <span className="ml-auto font-medium tabular-nums">{value}</span>
@@ -52,7 +52,7 @@ export default function FeedingCard({
       : hasDryDensity && hasWetDensity;
 
   return (
-    <section className="rounded-card bg-card p-5 shadow-sm">
+    <section className="rounded-card bg-card p-4 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-sm font-medium text-muted">今日建议</h2>
@@ -75,7 +75,7 @@ export default function FeedingCard({
         ) : null}
       </div>
 
-      <div className="mt-3 flex flex-col gap-2">
+      <div className="mt-2 flex flex-col gap-1.5">
         {hasDry ? (
           <FoodRow
             label={mode === "mixed" ? "干粮参考" : "干粮"}
@@ -91,19 +91,19 @@ export default function FeedingCard({
       </div>
 
       {!canRecord ? (
-        <p className="mt-4 py-4 text-center text-sm text-muted">
+        <p className="mt-3 py-3 text-center text-sm text-muted">
           先在「热量计算」保存当前模式需要的热量密度
         </p>
       ) : (
         <>
-          <div className="my-4 h-px bg-line/60" />
+          <div className="my-3 h-px bg-line/60" />
           <h3 className="text-sm font-medium text-muted">今日实际</h3>
           {todayLog && summary ? (
-            <div className="mt-3 flex flex-col gap-2">
+            <div className="mt-2 flex flex-col gap-1.5">
               {hasDry ? <FoodRow label="干粮" value={gramsText(todayLog.dryGrams)} /> : null}
               {hasWet ? <FoodRow label="湿粮" value={gramsText(todayLog.wetGrams)} /> : null}
               <div className="mt-1 flex items-baseline justify-between">
-                <p className="text-2xl font-bold leading-none text-ink tabular-nums">
+                <p className="text-xl font-bold leading-none text-ink tabular-nums">
                   {summary.actualKcal}
                   <span className="ml-1 text-base font-medium text-muted">kcal</span>
                 </p>
@@ -113,7 +113,7 @@ export default function FeedingCard({
               </div>
             </div>
           ) : (
-            <p className="mt-3 py-4 text-center text-sm text-muted">
+            <p className="mt-2 py-3 text-center text-sm text-muted">
               还没记今天喂了多少，点「记录实际」填一笔
             </p>
           )}

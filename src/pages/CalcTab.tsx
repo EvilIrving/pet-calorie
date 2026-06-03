@@ -32,8 +32,10 @@ const defaultMacros: MacroPercents = {
 export default function CalcTab() {
   const cat = useCatStore((s) => s.cat);
   const updateCat = useCatStore((s) => s.update);
+  const resetAllCat = useCatStore((s) => s.resetAll);
   const foods = useFoodStore((s) => s.foods);
   const saveFood = useFoodStore((s) => s.save);
+  const clearFoods = useFoodStore((s) => s.clear);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [foodType, setFoodType] = useState<FoodType>("dry");
@@ -120,7 +122,7 @@ export default function CalcTab() {
   };
 
   if (!cat) {
-    return <p className="py-12 text-center text-muted">加载中…</p>;
+    return <p className="py-8 text-center text-sm text-muted">加载中…</p>;
   }
 
   const savedFoodLabel = cat.species === "dog" ? "狗粮" : "猫粮";
@@ -136,7 +138,7 @@ export default function CalcTab() {
             : `保存为常用${savedFoodLabel}`;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <CatInfoBar
         species={cat.species}
         name={cat.name}
@@ -149,11 +151,15 @@ export default function CalcTab() {
           cat={cat}
           onClose={() => setSettingsOpen(false)}
           onSave={(values) => updateCat(values)}
+          onDeleteAll={async () => {
+            await resetAllCat();
+            clearFoods();
+          }}
         />
       ) : null}
 
-      <section className="rounded-card bg-card p-5 shadow-sm">
-        <p className="mb-3 text-sm text-muted">喂食模式</p>
+      <section className="rounded-card bg-card p-4 shadow-sm">
+        <p className="mb-2 text-sm text-muted">喂食模式</p>
         <SegmentControl
           aria-label="喂食模式"
           options={[
@@ -187,10 +193,10 @@ export default function CalcTab() {
         />
       ) : null}
 
-      <section className="rounded-card bg-accent/10 p-6 text-center">
+      <section className="rounded-card bg-accent/10 p-4 text-center">
         <p className="text-sm text-muted">每日可喂</p>
         {feedingMode === "mixed" ? (
-          <div className="mt-2 flex flex-col gap-1 text-left">
+          <div className="mt-1.5 flex flex-col gap-0.5 text-left">
             <p className="flex justify-between text-base text-ink">
               <span className="text-muted">干粮</span>
               <span className="font-semibold tabular-nums">{Math.round(mixedPlan.dryGrams)} g</span>
@@ -204,16 +210,16 @@ export default function CalcTab() {
             </p>
           </div>
         ) : (
-          <p className="mt-1 text-4xl font-bold text-ink tabular-nums">
+          <p className="mt-0.5 text-3xl font-bold text-ink tabular-nums">
             {Math.round(dailyGrams)} g
           </p>
         )}
-        <p className="mt-2 text-xs text-muted">维持热量 {Math.round(dailyKcal)} kcal/天</p>
+        <p className="mt-1.5 text-xs text-muted">维持热量 {Math.round(dailyKcal)} kcal/天</p>
       </section>
 
       <button
         type="button"
-        className="min-h-11 w-full rounded-2xl border border-accent bg-card px-4 py-3 text-sm font-medium text-accent touch-manipulation active:bg-accent/10"
+        className="min-h-11 w-full rounded-xl border border-accent bg-card px-3 py-2 text-sm font-medium text-accent touch-manipulation active:bg-accent/10"
         onClick={handleSaveFood}
         disabled={saveFoodStatus === "saving"}
         aria-live="polite"

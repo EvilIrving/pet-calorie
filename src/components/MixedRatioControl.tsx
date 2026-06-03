@@ -15,8 +15,8 @@ export default function MixedRatioControl({ dryRatio, onChange }: MixedRatioCont
   const wetPercent = 100 - dryPercent;
 
   return (
-    <section className="rounded-card bg-card p-5 shadow-sm">
-      <div className="mb-3 flex items-end justify-between gap-3">
+    <section className="rounded-card bg-card p-4 shadow-sm">
+      <div className="mb-2 flex items-end justify-between gap-2">
         <div>
           <p className="text-sm text-muted">干湿热量比例</p>
           <p className="mt-1 text-xs text-muted">按 kcal 分配，不按克重分配</p>
@@ -36,7 +36,7 @@ export default function MixedRatioControl({ dryRatio, onChange }: MixedRatioCont
         inputMode="numeric"
         aria-label="干粮热量占比"
       />
-      <div className="mt-3 flex items-center justify-between text-xs text-muted">
+      <div className="mt-2 flex items-center justify-between text-xs text-muted">
         <span>干粮 {dryPercent}%</span>
         <span>湿粮 {wetPercent}%</span>
       </div>

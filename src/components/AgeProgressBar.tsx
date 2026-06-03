@@ -65,7 +65,7 @@ export default function AgeProgressBar({
   const boundary2 = (segmentWeights[0] + segmentWeights[1]) * 100;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <div
         role="slider"
         aria-label="年龄段"
@@ -74,7 +74,7 @@ export default function AgeProgressBar({
         aria-valuenow={ageMonths}
         aria-valuetext={`${cfg.bandLabels[band]}，${formatPetAge(ageMonths)}`}
         tabIndex={0}
-        className="relative touch-none pt-7 pb-4 outline-none focus-visible:ring-2 focus-visible:ring-accent/30 rounded-2xl"
+        className="relative touch-none pt-6 pb-3 outline-none focus-visible:ring-2 focus-visible:ring-accent/30 rounded-xl"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
       >

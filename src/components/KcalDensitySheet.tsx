@@ -31,14 +31,14 @@ export default function KcalDensitySheet({ value, onChange, onClose }: KcalDensi
         <div className="flex gap-2">
           <button
             type="button"
-            className="min-h-11 flex-1 rounded-2xl bg-surface px-4 py-3 text-sm text-muted touch-manipulation active:bg-line/40"
+            className="min-h-11 flex-1 rounded-xl bg-surface px-3 py-2 text-sm text-muted touch-manipulation active:bg-line/40"
             onClick={onClose}
           >
             取消
           </button>
           <button
             type="button"
-            className="min-h-11 flex-1 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
+            className="min-h-11 flex-1 rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
             onClick={handleConfirm}
           >
             确定
@@ -46,7 +46,7 @@ export default function KcalDensitySheet({ value, onChange, onClose }: KcalDensi
         </div>
       }
     >
-      <div className="rounded-2xl border border-line px-4 py-3">
+      <div className="rounded-xl border border-line px-3 py-2.5">
         <WheelPicker
           min={energyDensityRange.min}
           max={energyDensityRange.max}

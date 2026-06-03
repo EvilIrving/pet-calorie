@@ -30,19 +30,25 @@ export default function App() {
     setTabReady(true);
   }, [catLoaded, foodsLoaded, tabReady, cat?.feedingMode, foods]);
 
+  useEffect(() => {
+    if (cat && !cat.onboardingDone && tabReady) {
+      setTabReady(false);
+    }
+  }, [cat?.onboardingDone, tabReady, cat]);
+
   if (needsOnboarding) {
     return <PetOnboarding />;
   }
 
   return (
-    <div className="mx-auto min-h-dvh max-w-md pb-28">
-      <header className="px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
-        <h1 className="text-lg font-semibold text-ink">宠物热量与减肥</h1>
+    <div className="mx-auto min-h-dvh max-w-md pb-24">
+      <header className="px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1">
+        <h1 className="text-base font-semibold text-ink">宠物热量与减肥</h1>
       </header>
 
-      <main className="px-4 pb-4">
+      <main className="px-3 pb-3">
         {!catLoaded || !tabReady ? (
-          <p className="py-16 text-center text-muted">加载中…</p>
+          <p className="py-10 text-center text-sm text-muted">加载中…</p>
         ) : tab === "calc" ? (
           <CalcTab />
         ) : (

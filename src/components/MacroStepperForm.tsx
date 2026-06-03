@@ -18,10 +18,10 @@ export default function MacroStepperForm({ macros, onChange }: MacroStepperFormP
   const analysis = calcMacroAnalysis(macros);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {macroFields.map(([key, label, max]) => (
         <div key={key}>
-          <p className="mb-2 text-sm text-muted">{label} %</p>
+          <p className="mb-1.5 text-sm text-muted">{label} %</p>
           <Stepper
             aria-label={label}
             value={macros[key]}
@@ -36,7 +36,7 @@ export default function MacroStepperForm({ macros, onChange }: MacroStepperFormP
         </div>
       ))}
 
-      <div className="rounded-2xl bg-surface px-4 py-3 text-center text-sm text-muted">
+      <div className="rounded-xl bg-surface px-3 py-2.5 text-center text-sm text-muted">
         <p>
           干物质{" "}
           <span className="font-semibold text-ink">{analysis.dryMatterPercent.toFixed(1)}%</span>

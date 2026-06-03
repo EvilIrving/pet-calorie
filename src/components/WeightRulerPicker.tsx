@@ -5,7 +5,7 @@ import { vibrateWheel } from "../lib/haptics";
 
 const STEP_KG = 0.01;
 const TICK_GAP_PX = 4;
-const RULER_HEIGHT_PX = 108;
+const RULER_HEIGHT_PX = 92;
 
 export interface WeightRulerPickerProps {
   species: Species;
@@ -153,15 +153,15 @@ export default function WeightRulerPicker({
 
   return (
     <div
-      className="rounded-2xl border border-line bg-card px-3 py-4"
+      className="rounded-xl border border-line bg-card px-3 py-3"
       role="group"
       aria-label={ariaLabel}
     >
       <div className="text-center">
-        <span className="text-4xl font-bold text-ink tabular-nums">{displayValue.toFixed(2)}</span>
+        <span className="text-3xl font-bold text-ink tabular-nums">{displayValue.toFixed(2)}</span>
         <span className="ml-1 text-base font-medium text-muted">kg</span>
       </div>
-      <div className="relative mt-3">
+      <div className="relative mt-2">
         <div className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px -translate-x-1/2 bg-accent" />
         <div className="pointer-events-none absolute left-1/2 top-7 z-10 size-3 -translate-x-1/2 rounded-full bg-accent" />
         <div
