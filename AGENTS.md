@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 本项目的设计与产品规格见 `docs/SPEC.md`，技术选型以其「技术选型」表格为准。本文件补充 **组件（Component）编写要求**，所有 AI 与人工编码都需遵守。
 
