@@ -37,16 +37,16 @@ function formatKcalRange(min: number, max: number): string {
   return `${min.toFixed(1)}–${max.toFixed(1)}`;
 }
 
-async function loadWeightLogs(): Promise<WeightLog[]> {
-  return db.weightLogs.orderBy("date").reverse().toArray();
+async function loadWeightLogs(petId: number): Promise<WeightLog[]> {
+  return db.weightLogs.where("petId").equals(petId).reverse().sortBy("date");
 }
 
-async function loadFeedingLog(date: string): Promise<FeedingLog | null> {
-  return (await db.feedingLogs.where("date").equals(date).first()) ?? null;
+async function loadFeedingLog(petId: number, date: string): Promise<FeedingLog | null> {
+  return (await db.feedingLogs.where("[petId+date]").equals([petId, date]).first()) ?? null;
 }
 
 export default function DietTab() {
-  const cat = useCatStore((s) => s.cat);
+  const activePet = useCatStore((s) => s.activePet);
   const updateCat = useCatStore((s) => s.update);
   const foods = useFoodStore((s) => s.foods);
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
@@ -56,30 +56,33 @@ export default function DietTab() {
   const [todayFeeding, setTodayFeeding] = useState<FeedingLog | null>(null);
 
   const today = toLocalDateString();
+  const petId = activePet?.id;
 
   const refreshWeightLogs = () => {
-    void loadWeightLogs().then(setWeightLogs);
+    if (petId == null) return;
+    void loadWeightLogs(petId).then(setWeightLogs);
   };
 
   const refreshFeeding = () => {
-    void loadFeedingLog(today).then(setTodayFeeding);
+    if (petId == null) return;
+    void loadFeedingLog(petId, today).then(setTodayFeeding);
   };
 
   useEffect(() => {
     refreshWeightLogs();
-  }, []);
+  }, [petId]);
 
   useEffect(() => {
     refreshFeeding();
-  }, [today]);
+  }, [petId, today]);
 
-  const species = cat?.species ?? "cat";
-  const week = cat ? getDietWeek(cat.dietStartDate) : 1;
-  const dietStartWeightKg = cat?.dietStartWeightKg ?? cat?.weightKg ?? 0;
-  const idealWeightKg = cat?.idealWeightKg ?? null;
+  const species = activePet?.species ?? "cat";
+  const week = activePet ? getDietWeek(activePet.dietStartDate) : 1;
+  const dietStartWeightKg = activePet?.dietStartWeightKg ?? activePet?.weightKg ?? 0;
+  const idealWeightKg = activePet?.idealWeightKg ?? null;
   const referenceWeightKg = calcDietReferenceWeightKg(
     weightLogs,
-    cat?.dietStartDate ?? null,
+    activePet?.dietStartDate ?? null,
     week,
     dietStartWeightKg,
   );
@@ -88,24 +91,26 @@ export default function DietTab() {
     safePlan.totalWeeksMax > 0
       ? Math.min(100, Math.max(0, (week / safePlan.totalWeeksMax) * 100))
       : 0;
-  const mer = cat ? calcMer(cat.weightKg, cat.lifeStage, cat.activity, cat.species) : 0;
-  const dailyKcalRange = cat
+  const mer = activePet
+    ? calcMer(activePet.weightKg, activePet.lifeStage, activePet.activity, activePet.species)
+    : 0;
+  const dailyKcalRange = activePet
     ? calcDietDailyKcalRange(mer, referenceWeightKg, safePlan.targetMinKg, safePlan.targetMaxKg)
     : { min: 0, max: 0 };
   const dailyKcal = dailyKcalRange.max;
-  const deficitRange = cat
+  const deficitRange = activePet
     ? calcDietCalorieDeficitRange(referenceWeightKg, safePlan.targetMinKg, safePlan.targetMaxKg)
     : { min: 0, max: 0 };
   const dryFood = foods.find((f) => f.foodType === "dry");
   const wetFood = foods.find((f) => f.foodType === "wet");
   const hasDryDensity = !!dryFood && dryFood.kcalPerKg > 0;
   const hasWetDensity = !!wetFood && wetFood.kcalPerKg > 0;
-  const feedingMode = cat?.feedingMode ?? "dry";
+  const feedingMode = activePet?.feedingMode ?? "dry";
   const recordsDry = canRecordDry(feedingMode);
   const recordsWet = canRecordWet(feedingMode);
   const dryKcalPerKg = dryFood?.kcalPerKg ?? 0;
   const wetKcalPerKg = wetFood?.kcalPerKg ?? 0;
-  const mixedDryRatio = cat?.mixedDryRatio ?? 0.5;
+  const mixedDryRatio = activePet?.mixedDryRatio ?? 0.5;
   const mixedPlan = calcMixedFeedingPlan(dailyKcal, dryKcalPerKg, wetKcalPerKg, mixedDryRatio);
 
   const suggestedDryGrams =
@@ -124,11 +129,12 @@ export default function DietTab() {
   const feedingSummary = summarizeFeeding(todayFeeding, dryKcalPerKg, wetKcalPerKg, dailyKcal);
 
   const saveFeedingLog = async (date: string, dryGrams: number | null, wetGrams: number | null) => {
-    const existing = await db.feedingLogs.where("date").equals(date).first();
+    if (petId == null) return;
+    const existing = await db.feedingLogs.where("[petId+date]").equals([petId, date]).first();
     if (existing?.id) {
       await db.feedingLogs.update(existing.id, { dryGrams, wetGrams });
     } else {
-      await db.feedingLogs.add({ date, dryGrams, wetGrams });
+      await db.feedingLogs.add({ petId, date, dryGrams, wetGrams });
     }
     refreshFeeding();
     setFeedingSheetOpen(false);
@@ -144,9 +150,12 @@ export default function DietTab() {
   }, [weightLogs]);
 
   const startDiet = async () => {
-    if (!cat) return;
-    if (!cat?.dietStartDate) {
-      await updateCat({ dietStartDate: new Date().toISOString(), dietStartWeightKg: cat.weightKg });
+    if (!activePet) return;
+    if (!activePet?.dietStartDate) {
+      await updateCat({
+        dietStartDate: new Date().toISOString(),
+        dietStartWeightKg: activePet.weightKg,
+      });
     }
   };
 
@@ -164,17 +173,18 @@ export default function DietTab() {
   };
 
   const syncCatToLatest = async () => {
-    const latest = await db.weightLogs.orderBy("date").last();
+    if (petId == null) return;
+    const latest = await db.weightLogs.where("petId").equals(petId).last();
     if (latest) await updateCat({ weightKg: latest.weightKg });
   };
 
   const saveWeightLog = async (date: string, weightKg: number) => {
-    if (!cat) return;
-    const existing = await db.weightLogs.where("date").equals(date).first();
+    if (!activePet || petId == null) return;
+    const existing = await db.weightLogs.where("[petId+date]").equals([petId, date]).first();
     if (existing?.id) {
       await db.weightLogs.update(existing.id, { weightKg });
     } else {
-      await db.weightLogs.add({ date, weightKg });
+      await db.weightLogs.add({ petId, date, weightKg });
     }
     await syncCatToLatest();
     refreshWeightLogs();
@@ -188,14 +198,14 @@ export default function DietTab() {
     refreshWeightLogs();
   };
 
-  if (!cat) {
+  if (!activePet) {
     return <p className="py-8 text-center text-sm text-muted">加载中…</p>;
   }
 
   return (
     <div className="flex flex-col gap-3">
       <section className="rounded-card bg-card p-4 shadow-sm">
-        {!cat.dietStartDate ? (
+        {!activePet.dietStartDate ? (
           <button
             type="button"
             className="mb-3 w-full min-h-11 rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
@@ -260,8 +270,8 @@ export default function DietTab() {
 
       {weightSheetOpen ? (
         <WeightLogSheet
-          species={cat.species}
-          initialWeightKg={editingLog?.weightKg ?? summary?.currentKg ?? cat.weightKg}
+          species={activePet.species}
+          initialWeightKg={editingLog?.weightKg ?? summary?.currentKg ?? activePet.weightKg}
           initialDate={editingLog?.date ?? toLocalDateString()}
           onClose={() => {
             setWeightSheetOpen(false);

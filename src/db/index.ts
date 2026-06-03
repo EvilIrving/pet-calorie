@@ -28,6 +28,7 @@ export interface CatProfile {
 
 export interface SavedFood {
   id?: number;
+  petId: number;
   name: string;
   foodType: "dry" | "wet";
   kcalPerKg: number;
@@ -37,13 +38,15 @@ export interface SavedFood {
 
 export interface WeightLog {
   id?: number;
+  petId: number;
   date: string;
   weightKg: number;
 }
 
-/** 每日实际喂食量（每天一条，同日覆盖）；未喂某类粮时该字段为 null */
+/** 每日实际喂食量（同一宠物每天一条，同日覆盖）；未喂某类粮时该字段为 null */
 export interface FeedingLog {
   id?: number;
+  petId: number;
   date: string;
   dryGrams: number | null;
   wetGrams: number | null;
@@ -59,9 +62,9 @@ class CatDatabase extends Dexie {
     super("react-cat");
     this.version(1).stores({
       cat: "++id",
-      foods: "++id, foodType, createdAt",
-      weightLogs: "++id, date",
-      feedingLogs: "++id, &date",
+      foods: "++id, petId, foodType, createdAt",
+      weightLogs: "++id, petId, date",
+      feedingLogs: "++id, petId, &[petId+date]",
     });
   }
 }
@@ -69,22 +72,21 @@ class CatDatabase extends Dexie {
 export const db = new CatDatabase();
 
 export async function initDb(): Promise<void> {
-  await db.open();
+  try {
+    await db.open();
+  } catch {
+    db.close();
+    await Dexie.delete("react-cat");
+    await db.open();
+  }
 }
 
-/** 清空全部本地数据并创建默认宠物档案（用于设置页「删除」后重新开始） */
-export async function resetAllAppData(): Promise<CatProfile> {
-  await db.transaction("rw", db.cat, db.foods, db.weightLogs, db.feedingLogs, async () => {
-    await Promise.all([
-      db.cat.clear(),
-      db.foods.clear(),
-      db.weightLogs.clear(),
-      db.feedingLogs.clear(),
-    ]);
-  });
-  return getOrCreateCat();
+/** 获取所有宠物列表（按 id 排序） */
+export async function getAllCats(): Promise<CatProfile[]> {
+  return db.cat.orderBy("id").toArray();
 }
 
+/** 获取或创建默认宠物（App 首次启动时使用） */
 export async function getOrCreateCat(): Promise<CatProfile> {
   const existing = await db.cat.orderBy("id").first();
   if (existing) {
@@ -102,6 +104,11 @@ export async function getOrCreateCat(): Promise<CatProfile> {
     return normalized;
   }
 
+  return createDefaultCat();
+}
+
+/** 创建默认宠物档案并返回 */
+export async function createDefaultCat(): Promise<CatProfile> {
   const now = new Date().toISOString();
   const species: Species = "cat";
   const id = await db.cat.add({
@@ -123,4 +130,29 @@ export async function getOrCreateCat(): Promise<CatProfile> {
   const created = await db.cat.get(id);
   if (!created) throw new Error("Failed to create default cat profile");
   return created;
+}
+
+/** 删除指定宠物及其关联的全部数据（foods / weightLogs / feedingLogs） */
+export async function deleteCatAndData(petId: number): Promise<void> {
+  await db.transaction("rw", db.cat, db.foods, db.weightLogs, db.feedingLogs, async () => {
+    await Promise.all([
+      db.cat.delete(petId),
+      db.foods.where("petId").equals(petId).delete(),
+      db.weightLogs.where("petId").equals(petId).delete(),
+      db.feedingLogs.where("petId").equals(petId).delete(),
+    ]);
+  });
+}
+
+/** 清空全部本地数据并创建默认宠物档案（用于设置页「删除全部」后重新开始） */
+export async function resetAllAppData(): Promise<CatProfile> {
+  await db.transaction("rw", db.cat, db.foods, db.weightLogs, db.feedingLogs, async () => {
+    await Promise.all([
+      db.cat.clear(),
+      db.foods.clear(),
+      db.weightLogs.clear(),
+      db.feedingLogs.clear(),
+    ]);
+  });
+  return createDefaultCat();
 }

@@ -3,8 +3,8 @@ import type { WeightLog } from "../db";
 import { calcDietReferenceWeightKg, summarizeWeightLogs } from "./weightLog";
 
 const logs: WeightLog[] = [
-  { id: 1, date: "2026-06-01", weightKg: 4.5 },
-  { id: 2, date: "2026-05-25", weightKg: 4.7 },
+  { id: 1, petId: 1, date: "2026-06-01", weightKg: 4.5 },
+  { id: 2, petId: 1, date: "2026-05-25", weightKg: 4.7 },
 ];
 
 describe("summarizeWeightLogs", () => {
@@ -36,9 +36,9 @@ describe("calcDietReferenceWeightKg", () => {
 
   it("uses the previous plan week average from weight logs", () => {
     const weeklyLogs: WeightLog[] = [
-      { date: "2026-06-02", weightKg: 5.4 },
-      { date: "2026-06-04", weightKg: 5.5 },
-      { date: "2026-06-09", weightKg: 5.3 },
+      { petId: 1, date: "2026-06-02", weightKg: 5.4 },
+      { petId: 1, date: "2026-06-04", weightKg: 5.5 },
+      { petId: 1, date: "2026-06-09", weightKg: 5.3 },
     ];
     expect(calcDietReferenceWeightKg(weeklyLogs, "2026-06-01T00:00:00.000Z", 2, 5.6)).toBeCloseTo(
       5.45,

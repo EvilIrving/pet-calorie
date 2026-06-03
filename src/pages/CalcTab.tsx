@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import CatInfoBar from "../components/CatInfoBar";
 import FoodDensitySection from "../components/FoodDensitySection";
 import MixedRatioControl from "../components/MixedRatioControl";
-import PetSettingsSheet from "../components/PetSettingsSheet";
 import SegmentControl from "../components/SegmentControl";
 import { defaultDryKcalPerKg, defaultWetKcalPerKg } from "../config/nutrition";
 import {
@@ -30,13 +28,10 @@ const defaultMacros: MacroPercents = {
 };
 
 export default function CalcTab() {
-  const cat = useCatStore((s) => s.cat);
+  const activePet = useCatStore((s) => s.activePet);
   const updateCat = useCatStore((s) => s.update);
-  const resetAllCat = useCatStore((s) => s.resetAll);
   const foods = useFoodStore((s) => s.foods);
   const saveFood = useFoodStore((s) => s.save);
-  const clearFoods = useFoodStore((s) => s.clear);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [foodType, setFoodType] = useState<FoodType>("dry");
   const [inputMode, setInputMode] = useState<InputMode>("kcal");
@@ -46,7 +41,7 @@ export default function CalcTab() {
   const [saveFoodStatus, setSaveFoodStatus] = useState<SaveFoodStatus>("idle");
 
   const feedingMode: FeedingPlanMode =
-    cat?.feedingMode === "mixed" ? "mixed" : cat?.feedingMode === "wet" ? "wet" : "dry";
+    activePet?.feedingMode === "mixed" ? "mixed" : activePet?.feedingMode === "wet" ? "wet" : "dry";
 
   useEffect(() => {
     if (saveFoodStatus !== "saved" && saveFoodStatus !== "error") return;
@@ -73,9 +68,11 @@ export default function CalcTab() {
     return calcKcalFromMacros(macros) * 10;
   }, [inputMode, kcalPerKg, macros]);
 
-  const dailyKcal = cat ? calcMer(cat.weightKg, cat.lifeStage, cat.activity, cat.species) : 0;
+  const dailyKcal = activePet
+    ? calcMer(activePet.weightKg, activePet.lifeStage, activePet.activity, activePet.species)
+    : 0;
   const dailyGrams = calcDailyGrams(dailyKcal, effectiveKcalPerKg);
-  const mixedDryRatio = cat?.mixedDryRatio ?? 0.5;
+  const mixedDryRatio = activePet?.mixedDryRatio ?? 0.5;
   const mixedPlan = calcMixedFeedingPlan(dailyKcal, dryKcalPerKg, wetKcalPerKg, mixedDryRatio);
 
   const handleFoodTypeChange = (type: FoodType) => {
@@ -90,17 +87,17 @@ export default function CalcTab() {
   };
 
   const handleSaveFood = async () => {
-    if (!cat) return;
+    if (!activePet) return;
     setSaveFoodStatus("saving");
     try {
       if (feedingMode === "mixed") {
-        await saveFood({
+        await saveFood(activePet.id, {
           name: `干粮 ${Math.round(dryKcalPerKg)}`,
           foodType: "dry",
           kcalPerKg: dryKcalPerKg,
           macros: null,
         });
-        await saveFood({
+        await saveFood(activePet.id, {
           name: `湿粮 ${Math.round(wetKcalPerKg)}`,
           foodType: "wet",
           kcalPerKg: wetKcalPerKg,
@@ -109,7 +106,7 @@ export default function CalcTab() {
         setSaveFoodStatus("saved");
         return;
       }
-      await saveFood({
+      await saveFood(activePet.id, {
         name: `${foodType === "dry" ? "干粮" : "湿粮"} ${Math.round(effectiveKcalPerKg)}`,
         foodType,
         kcalPerKg: effectiveKcalPerKg,
@@ -121,11 +118,11 @@ export default function CalcTab() {
     }
   };
 
-  if (!cat) {
+  if (!activePet) {
     return <p className="py-8 text-center text-sm text-muted">加载中…</p>;
   }
 
-  const savedFoodLabel = cat.species === "dog" ? "狗粮" : "猫粮";
+  const savedFoodLabel = activePet.species === "dog" ? "狗粮" : "猫粮";
   const saveButtonLabel =
     saveFoodStatus === "saving"
       ? "保存中…"
@@ -139,25 +136,6 @@ export default function CalcTab() {
 
   return (
     <div className="flex flex-col gap-3">
-      <CatInfoBar
-        species={cat.species}
-        name={cat.name}
-        weightKg={cat.weightKg}
-        onSettings={() => setSettingsOpen(true)}
-      />
-
-      {settingsOpen ? (
-        <PetSettingsSheet
-          cat={cat}
-          onClose={() => setSettingsOpen(false)}
-          onSave={(values) => updateCat(values)}
-          onDeleteAll={async () => {
-            await resetAllCat();
-            clearFoods();
-          }}
-        />
-      ) : null}
-
       <section className="rounded-card bg-card p-4 shadow-sm">
         <p className="mb-2 text-sm text-muted">喂食模式</p>
         <SegmentControl

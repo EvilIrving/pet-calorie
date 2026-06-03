@@ -34,18 +34,30 @@ export default function WeightRulerPicker({
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frameRef = useRef(0);
   const valueRef = useRef(value);
+  const isScrollingRef = useRef(false);
   const [displayValue, setDisplayValue] = useState(value);
   valueRef.current = value;
 
   const totalTicks = Math.round((range.max - range.min) / STEP_KG);
   const totalWidth = totalTicks * TICK_GAP_PX;
 
+  const tickToWeight = useCallback(
+    (tickIndex: number) =>
+      clamp(roundWeight(range.min + tickIndex * STEP_KG), range.min, range.max),
+    [range.min, range.max],
+  );
+
+  const weightToScrollX = useCallback(
+    (w: number) => Math.round((w - range.min) / STEP_KG) * TICK_GAP_PX,
+    [range.min],
+  );
+
   const readScrollWeight = useCallback((): number | null => {
     const scroller = scrollRef.current;
     if (!scroller) return null;
     const index = Math.min(totalTicks, Math.max(0, Math.round(scroller.scrollLeft / TICK_GAP_PX)));
-    return clamp(roundWeight(range.min + index * STEP_KG), range.min, range.max);
-  }, [range.min, range.max, totalTicks]);
+    return tickToWeight(index);
+  }, [totalTicks, tickToWeight]);
 
   const draw = useCallback(() => {
     const scroller = scrollRef.current;
@@ -101,15 +113,14 @@ export default function WeightRulerPicker({
       const scroller = scrollRef.current;
       if (!scroller) return;
       const next = clamp(roundWeight(nextValue), range.min, range.max);
-      const index = Math.round((next - range.min) / STEP_KG);
-      scroller.scrollTo({ left: index * TICK_GAP_PX, behavior });
+      const x = weightToScrollX(next);
+      isScrollingRef.current = true;
+      scroller.scrollTo({ left: x, behavior });
     },
-    [range.min, range.max],
+    [range.min, range.max, weightToScrollX],
   );
 
   const settle = useCallback(() => {
-    const scroller = scrollRef.current;
-    if (!scroller) return;
     const next = readScrollWeight();
     if (next === null) return;
     setDisplayValue(next);
@@ -141,15 +152,40 @@ export default function WeightRulerPicker({
       settleTimerRef.current = setTimeout(settle, 140);
     };
 
+    const handleScrollEnd = () => {
+      isScrollingRef.current = false;
+      settle();
+    };
+
     scroller.addEventListener("scroll", handleScroll, { passive: true });
+    scroller.addEventListener("scrollend", handleScrollEnd, { passive: true });
     window.addEventListener("resize", draw);
     return () => {
       scroller.removeEventListener("scroll", handleScroll);
+      scroller.removeEventListener("scrollend", handleScrollEnd);
       window.removeEventListener("resize", draw);
       cancelAnimationFrame(frameRef.current);
       if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
     };
   }, [draw, readScrollWeight, settle]);
+
+  const handleRulerClick = useCallback(
+    (e: React.MouseEvent) => {
+      const scroller = scrollRef.current;
+      if (!scroller) return;
+      const rect = scroller.getBoundingClientRect();
+      const clickX = e.clientX - rect.left + scroller.scrollLeft;
+      const tickIndex = Math.round(clickX / TICK_GAP_PX);
+      const w = tickToWeight(Math.min(totalTicks, Math.max(0, tickIndex)));
+      setDisplayValue(w);
+      syncScrollToValue(w, "smooth");
+      if (w !== valueRef.current) {
+        onChange(w);
+        vibrateWheel();
+      }
+    },
+    [totalTicks, tickToWeight, syncScrollToValue, onChange],
+  );
 
   return (
     <div
@@ -166,7 +202,31 @@ export default function WeightRulerPicker({
         <div className="pointer-events-none absolute left-1/2 top-7 z-10 size-3 -translate-x-1/2 rounded-full bg-accent" />
         <div
           ref={scrollRef}
-          className="overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [mask-image:linear-gradient(to_right,transparent,#000_16%,#000_84%,transparent)] [&::-webkit-scrollbar]:hidden"
+          role="slider"
+          tabIndex={0}
+          aria-valuenow={displayValue}
+          aria-valuemin={range.min}
+          aria-valuemax={range.max}
+          aria-label={ariaLabel}
+          className="overflow-x-auto cursor-pointer [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [mask-image:linear-gradient(to_right,transparent,#000_16%,#000_84%,transparent)] [&::-webkit-scrollbar]:hidden"
+          onClick={handleRulerClick}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+              e.preventDefault();
+              const w = clamp(roundWeight(displayValue - STEP_KG), range.min, range.max);
+              setDisplayValue(w);
+              syncScrollToValue(w, "smooth");
+              onChange(w);
+              vibrateWheel();
+            } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+              e.preventDefault();
+              const w = clamp(roundWeight(displayValue + STEP_KG), range.min, range.max);
+              setDisplayValue(w);
+              syncScrollToValue(w, "smooth");
+              onChange(w);
+              vibrateWheel();
+            }
+          }}
         >
           <div
             className="relative"

@@ -4,16 +4,17 @@ import PetProfileForm, { type PetProfileFormValues } from "./PetProfileForm";
 
 export interface PetSettingsSheetProps {
   cat: CatProfile;
+  catCount: number;
   onClose: () => void;
   onSave: (values: PetProfileFormValues) => void | Promise<void>;
-  onDeleteAll: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
 }
 
 export default function PetSettingsSheet({
   cat,
   onClose,
   onSave,
-  onDeleteAll,
+  onDelete,
 }: PetSettingsSheetProps) {
   const handleSave = async (values: PetProfileFormValues) => {
     await onSave(values);
@@ -22,10 +23,10 @@ export default function PetSettingsSheet({
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
-      "将删除该宠物及全部本地数据（常用粮、体重与喂食记录等），且无法恢复。确定继续？",
+      "将删除当前宠物及其全部数据（常用粮、体重与喂食记录等），且无法恢复。确定继续？",
     );
     if (!confirmed) return;
-    await onDeleteAll();
+    await onDelete();
     onClose();
   };
 
