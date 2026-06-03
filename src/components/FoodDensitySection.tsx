@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { MacroPercents } from "../lib/calculator";
 import type { FeedingMode } from "../lib/feeding";
-import BorderedButtonGroup from "./BorderedButtonGroup";
+import SegmentControl from "./SegmentControl";
 import KcalDensitySheet from "./KcalDensitySheet";
 import MacroStepperForm from "./MacroStepperForm";
 
@@ -79,7 +79,7 @@ export default function FoodDensitySection({
       ) : (
         <>
           <p className="mb-2 text-sm text-muted">热量输入方式</p>
-          <BorderedButtonGroup
+          <SegmentControl
             aria-label="热量输入方式"
             options={[
               { value: "kcal", label: "kcal/kg" },
