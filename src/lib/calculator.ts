@@ -2,13 +2,11 @@ import {
   type ActivityLevel,
   activityMultiplier,
   atwater,
-  type DietPhaseKey,
-  dietPhases,
   type LifeStage,
   lifeFactor,
-  minRerRatio,
   type Species,
   safeWeightLossRate,
+  weightLossEnergyKcalPerKg,
 } from "../config/nutrition";
 
 export interface MacroPercents {
@@ -61,6 +59,16 @@ export interface SafeWeightLossPlan {
   targetWeightKg: number;
   totalWeeksMin: number;
   totalWeeksMax: number;
+}
+
+export interface DietDailyKcalRange {
+  min: number;
+  max: number;
+}
+
+export interface DietCalorieDeficitRange {
+  min: number;
+  max: number;
 }
 
 function macroAsFedParts(macros: MacroPercents) {
@@ -173,39 +181,34 @@ export function calcSafeWeightLossPlan(
   };
 }
 
-export function getDietPhaseKey(week: number, _species: Species = "cat"): DietPhaseKey {
-  const phases = dietPhases.cat;
-  if (week <= phases.transition.weeks[1]) return "transition";
-  if (week <= phases.main.weeks[1]) return "main";
-  return "intensive";
+export function calcDietCalorieDeficitRange(
+  referenceWeightKg: number,
+  targetMinWeightKg: number,
+  targetMaxWeightKg: number,
+): DietCalorieDeficitRange {
+  const lossMinKg = Math.max(0, referenceWeightKg - targetMaxWeightKg);
+  const lossMaxKg = Math.max(0, referenceWeightKg - targetMinWeightKg);
+  return {
+    min: (lossMinKg * weightLossEnergyKcalPerKg) / 7,
+    max: (lossMaxKg * weightLossEnergyKcalPerKg) / 7,
+  };
 }
 
-export function getDietPhaseRatio(week: number, species: Species): number {
-  const key = getDietPhaseKey(week, species);
-  return dietPhases[species][key].ratio;
-}
-
-/** 减肥 Tab 目标热量：RER × 阶段 ratio，以物种 minRerRatio 兜底 */
-export function calcDietDailyKcal(
-  weightKg: number,
-  week: number,
-  species: Species = "cat",
-  idealWeightKg: number | null = null,
-): number {
-  const targetWeightKg = idealWeightKg && idealWeightKg > 0 ? idealWeightKg : weightKg;
-  const rer = calcRer(targetWeightKg);
-  if (rer <= 0) return 0;
-  const ratio = getDietPhaseRatio(week, species);
-  const target = rer * ratio;
-  const floor = rer * minRerRatio[species];
-  return Math.max(target, floor);
-}
-
-export function calcTotalDietWeeks(species: Species = "cat"): number {
-  return dietPhases[species].intensive.weeks[0] + 8;
-}
-
-export function calcDietProgressPercent(week: number, species: Species = "cat"): number {
-  const total = calcTotalDietWeeks(species);
-  return Math.min(100, Math.max(0, (week / total) * 100));
+export function calcDietDailyKcalRange(
+  maintenanceKcal: number,
+  referenceWeightKg: number,
+  targetMinWeightKg: number,
+  targetMaxWeightKg: number,
+): DietDailyKcalRange {
+  const deficit = calcDietCalorieDeficitRange(
+    referenceWeightKg,
+    targetMinWeightKg,
+    targetMaxWeightKg,
+  );
+  const min = Math.max(0, maintenanceKcal - deficit.max);
+  const max = Math.max(0, maintenanceKcal - deficit.min);
+  return {
+    min: Math.min(min, max),
+    max: Math.max(min, max),
+  };
 }

@@ -5,36 +5,21 @@ import FeedingLogSheet from "../components/FeedingLogSheet";
 import type { WeightChartPoint } from "../components/WeightChart";
 import WeightLogSheet from "../components/WeightLogSheet";
 import WeightTrendCard from "../components/WeightTrendCard";
-import { type DietPhaseKey, dietPhases } from "../config/nutrition";
 import type { FeedingLog, WeightLog } from "../db";
 import { db } from "../db";
 import {
   calcDailyGrams,
-  calcDietDailyKcal,
-  calcDietProgressPercent,
+  calcDietCalorieDeficitRange,
+  calcDietDailyKcalRange,
   calcMer,
   calcMixedFeedingPlan,
-  calcRer,
   calcSafeWeightLossPlan,
-  getDietPhaseKey,
 } from "../lib/calculator";
 import { formatShortDate, toLocalDateString } from "../lib/date";
 import { canRecordDry, canRecordWet, summarizeFeeding } from "../lib/feeding";
-import { summarizeWeightLogs } from "../lib/weightLog";
+import { calcDietReferenceWeightKg, summarizeWeightLogs } from "../lib/weightLog";
 import { useCatStore } from "../stores/catStore";
 import { useFoodStore } from "../stores/foodStore";
-
-const phaseLabels: Record<DietPhaseKey, string> = {
-  transition: "过渡控量",
-  main: "主控减重",
-  intensive: "强化减重",
-};
-
-const phaseColors: Record<DietPhaseKey, string> = {
-  transition: "bg-phase-cyan",
-  main: "bg-phase-emerald",
-  intensive: "bg-phase-jade",
-};
 
 function getDietWeek(startIso: string | null): number {
   if (!startIso) return 1;
@@ -42,6 +27,14 @@ function getDietWeek(startIso: string | null): number {
   const now = new Date();
   const diff = now.getTime() - start.getTime();
   return Math.max(1, Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1);
+}
+
+function formatKcalRange(min: number, max: number): string {
+  if (Math.abs(max - min) < 0.05) return `${Math.round(max)}`;
+  const roundedMin = Math.round(min);
+  const roundedMax = Math.round(max);
+  if (roundedMin !== roundedMax) return `${roundedMin}–${roundedMax}`;
+  return `${min.toFixed(1)}–${max.toFixed(1)}`;
 }
 
 async function loadWeightLogs(): Promise<WeightLog[]> {
@@ -82,19 +75,27 @@ export default function DietTab() {
 
   const species = cat?.species ?? "cat";
   const week = cat ? getDietWeek(cat.dietStartDate) : 1;
-  const phaseKey = getDietPhaseKey(week, species);
-  const phase = dietPhases[species][phaseKey];
   const dietStartWeightKg = cat?.dietStartWeightKg ?? cat?.weightKg ?? 0;
   const idealWeightKg = cat?.idealWeightKg ?? null;
-  const safePlan = calcSafeWeightLossPlan(dietStartWeightKg, idealWeightKg, week, species);
+  const referenceWeightKg = calcDietReferenceWeightKg(
+    weightLogs,
+    cat?.dietStartDate ?? null,
+    week,
+    dietStartWeightKg,
+  );
+  const safePlan = calcSafeWeightLossPlan(referenceWeightKg, idealWeightKg, 1, species);
   const progress =
     safePlan.totalWeeksMax > 0
       ? Math.min(100, Math.max(0, (week / safePlan.totalWeeksMax) * 100))
-      : calcDietProgressPercent(week, species);
-  const dietWeightKg = safePlan.targetWeightKg;
-  const dailyKcal = cat ? calcDietDailyKcal(cat.weightKg, week, species, dietWeightKg) : 0;
-  const rer = cat ? calcRer(dietWeightKg) : 0;
+      : 0;
   const mer = cat ? calcMer(cat.weightKg, cat.lifeStage, cat.activity, cat.species) : 0;
+  const dailyKcalRange = cat
+    ? calcDietDailyKcalRange(mer, referenceWeightKg, safePlan.targetMinKg, safePlan.targetMaxKg)
+    : { min: 0, max: 0 };
+  const dailyKcal = dailyKcalRange.max;
+  const deficitRange = cat
+    ? calcDietCalorieDeficitRange(referenceWeightKg, safePlan.targetMinKg, safePlan.targetMaxKg)
+    : { min: 0, max: 0 };
   const dryFood = foods.find((f) => f.foodType === "dry");
   const wetFood = foods.find((f) => f.foodType === "wet");
   const hasDryDensity = !!dryFood && dryFood.kcalPerKg > 0;
@@ -204,52 +205,35 @@ export default function DietTab() {
           </button>
         ) : null}
 
-        <p className="text-base font-semibold text-ink">
-          第 {phase.weeks[0]}
-          {phase.weeks[1] === Number.POSITIVE_INFINITY ? "+" : `–${phase.weeks[1]}`} 周：
-          {phaseLabels[phaseKey]}
-        </p>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-base font-semibold text-ink">第 {week} 周目标</p>
+          <p className="text-xs font-medium text-muted">
+            固定速率 {(safePlan.rateMin * 100).toFixed(1)}–{(safePlan.rateMax * 100).toFixed(1)}
+            %/周
+          </p>
+        </div>
 
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface">
           <div
-            className={`h-full rounded-full transition-all ${phaseColors[phaseKey]}`}
+            className="h-full rounded-full bg-phase-emerald transition-all"
             style={{ width: `${progress}%` }}
           />
-        </div>
-
-        <div className="mt-3 flex gap-2 text-xs">
-          {(Object.keys(dietPhases[species]) as DietPhaseKey[]).map((key) => (
-            <span
-              key={key}
-              className={`rounded-full px-2 py-1 ${
-                key === phaseKey ? `${phaseColors[key]} text-white` : "bg-surface text-muted"
-              }`}
-            >
-              {phaseLabels[key]}
-            </span>
-          ))}
         </div>
 
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted">
           <span className="flex items-center gap-1">
             <Target24Regular className="size-4 text-accent" aria-hidden />
-            {Math.round(dailyKcal)} kcal/天
+            {formatKcalRange(dailyKcalRange.min, dailyKcalRange.max)} kcal/天
           </span>
           <span className="flex items-center gap-1">
             <Scales24Regular className="size-4 text-accent" aria-hidden />
-            {phase.ratio}×RER
+            {safePlan.targetMinKg.toFixed(2)}–{safePlan.targetMaxKg.toFixed(2)} kg
           </span>
           <span className="flex items-center gap-1">
             <DataTrending24Regular className="size-4 text-accent" aria-hidden />
-            目标RER {Math.round(rer)} · MER {Math.round(mer)}
+            MER {Math.round(mer)} · 缺口 {formatKcalRange(deficitRange.min, deficitRange.max)}
           </span>
         </div>
-        {safePlan.totalWeeksMax > 0 ? (
-          <p className="mt-3 text-xs text-muted">
-            本周安全目标 {safePlan.targetMinKg.toFixed(1)}–{safePlan.targetMaxKg.toFixed(1)} kg
-            ，速率 {(safePlan.rateMin * 100).toFixed(1)}–{(safePlan.rateMax * 100).toFixed(1)}%/周
-          </p>
-        ) : null}
       </section>
 
       <FeedingCard

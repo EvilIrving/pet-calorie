@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WeightLog } from "../db";
-import { summarizeWeightLogs } from "./weightLog";
+import { calcDietReferenceWeightKg, summarizeWeightLogs } from "./weightLog";
 
 const logs: WeightLog[] = [
   { id: 1, date: "2026-06-01", weightKg: 4.5 },
@@ -26,5 +26,27 @@ describe("summarizeWeightLogs", () => {
       previousKg: 4.7,
       deltaKg: -0.2,
     });
+  });
+});
+
+describe("calcDietReferenceWeightKg", () => {
+  it("uses the start weight for week 1", () => {
+    expect(calcDietReferenceWeightKg(logs, "2026-05-25T00:00:00.000Z", 1, 4.8)).toBe(4.8);
+  });
+
+  it("uses the previous plan week average from weight logs", () => {
+    const weeklyLogs: WeightLog[] = [
+      { date: "2026-06-02", weightKg: 5.4 },
+      { date: "2026-06-04", weightKg: 5.5 },
+      { date: "2026-06-09", weightKg: 5.3 },
+    ];
+    expect(calcDietReferenceWeightKg(weeklyLogs, "2026-06-01T00:00:00.000Z", 2, 5.6)).toBeCloseTo(
+      5.45,
+      2,
+    );
+  });
+
+  it("falls back to the start weight when the previous plan week has no logs", () => {
+    expect(calcDietReferenceWeightKg(logs, "2026-06-02T00:00:00.000Z", 3, 5.6)).toBe(5.6);
   });
 });

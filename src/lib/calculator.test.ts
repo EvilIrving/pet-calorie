@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   calcDailyGrams,
-  calcDietDailyKcal,
+  calcDietCalorieDeficitRange,
+  calcDietDailyKcalRange,
   calcKcalFromMacros,
   calcMacroAnalysis,
   calcMer,
   calcMixedFeedingPlan,
   calcRer,
   calcSafeWeightLossPlan,
-  getDietPhaseKey,
-  getDietPhaseRatio,
 } from "./calculator";
 
 describe("calcRer", () => {
@@ -104,43 +103,25 @@ describe("calcSafeWeightLossPlan", () => {
     expect(plan.targetWeightKg).toBeCloseTo(plan.targetMaxKg, 2);
   });
 
-  it("uses dog safe weekly weight loss range and clamps at ideal weight", () => {
+  it("uses fixed weekly weight loss range for dogs and clamps at ideal weight", () => {
     const plan = calcSafeWeightLossPlan(20, 19.7, 2, "dog");
-    expect(plan.rateMin).toBe(0.01);
-    expect(plan.rateMax).toBe(0.02);
+    expect(plan.rateMin).toBe(0.005);
+    expect(plan.rateMax).toBe(0.01);
     expect(plan.targetMinKg).toBeCloseTo(19.7, 2);
-    expect(plan.targetMaxKg).toBeCloseTo(19.7, 2);
+    expect(plan.targetMaxKg).toBeCloseTo(19.8, 2);
   });
 });
 
-describe("diet phase", () => {
-  it("maps weeks to phases", () => {
-    expect(getDietPhaseKey(1)).toBe("transition");
-    expect(getDietPhaseKey(4)).toBe("main");
-    expect(getDietPhaseKey(8)).toBe("intensive");
+describe("diet target calories", () => {
+  it("calculates the daily deficit range from weekly weight loss", () => {
+    const range = calcDietCalorieDeficitRange(5.5, 5.445, 5.4725);
+    expect(range.min).toBeCloseTo(30.25, 2);
+    expect(range.max).toBeCloseTo(60.5, 2);
   });
 
-  it("uses species-specific diet ratios", () => {
-    expect(getDietPhaseRatio(1, "cat")).toBe(1.0);
-    expect(getDietPhaseRatio(4, "cat")).toBe(0.85);
-    expect(getDietPhaseRatio(8, "cat")).toBe(0.8);
-    expect(getDietPhaseRatio(8, "dog")).toBe(0.65);
-  });
-
-  it("anchors diet kcal to RER × ratio for cat transition", () => {
-    const rer = calcRer(4.2);
-    expect(calcDietDailyKcal(4.2, 1, "cat")).toBeCloseTo(rer * 1.0, 1);
-  });
-
-  it("uses ideal weight RER when present for weight loss targets", () => {
-    const idealRer = calcRer(4.8);
-    expect(calcDietDailyKcal(6, 4, "cat", 4.8)).toBeCloseTo(idealRer * 0.85, 1);
-  });
-
-  it("applies species min RER floor for dog intensive", () => {
-    const rer = calcRer(12);
-    const raw = rer * 0.65;
-    const floor = rer * 0.6;
-    expect(calcDietDailyKcal(12, 8, "dog")).toBeCloseTo(Math.max(raw, floor), 1);
+  it("subtracts the deficit range from MER", () => {
+    const range = calcDietDailyKcalRange(300, 5.5, 5.445, 5.4725);
+    expect(range.min).toBeCloseTo(239.5, 2);
+    expect(range.max).toBeCloseTo(269.75, 2);
   });
 });

@@ -111,33 +111,14 @@ export const activityLabelsBySpecies: Record<Species, Record<ActivityLevel, stri
   },
 };
 
-/** 减肥目标 = RER × ratio（按物种与阶段） */
-export const dietPhases = {
-  cat: {
-    transition: { weeks: [1, 2] as const, ratio: 1.0 },
-    main: { weeks: [3, 6] as const, ratio: 0.85 },
-    intensive: { weeks: [7, Number.POSITIVE_INFINITY] as const, ratio: 0.8 },
-  },
-  dog: {
-    transition: { weeks: [1, 2] as const, ratio: 1.0 },
-    main: { weeks: [3, 6] as const, ratio: 0.8 },
-    intensive: { weeks: [7, Number.POSITIVE_INFINITY] as const, ratio: 0.65 },
-  },
-} as const;
-
-export type DietPhaseKey = keyof (typeof dietPhases)["cat"];
-
-/** 安全减重速率（每周体重百分比） */
+/** 固定减重速率（每周体重百分比） */
 export const safeWeightLossRate = {
   cat: { min: 0.005, max: 0.01 },
-  dog: { min: 0.01, max: 0.02 },
+  dog: { min: 0.005, max: 0.01 },
 } as const;
 
-/** RER 下限保护（防限饲过度，按物种） */
-export const minRerRatio: Record<Species, number> = {
-  cat: 0.8,
-  dog: 0.6,
-};
+/** 体重变化热量折算粗估值 kcal/kg */
+export const weightLossEnergyKcalPerKg = 7700;
 
 /** 干粮默认热量密度 kcal/kg */
 export const defaultDryKcalPerKg = 3500;
