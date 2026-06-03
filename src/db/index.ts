@@ -66,6 +66,13 @@ class CatDatabase extends Dexie {
       weightLogs: "++id, petId, date",
       feedingLogs: "++id, petId, &[petId+date]",
     });
+
+    this.version(2).stores({
+      cat: "++id",
+      foods: "++id, petId, foodType, createdAt",
+      weightLogs: "++id, date, petId",
+      feedingLogs: "++id, petId, &[petId+date]",
+    });
   }
 }
 

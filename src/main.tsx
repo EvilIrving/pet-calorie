@@ -16,6 +16,12 @@ const queryClient = new QueryClient({
 
 async function bootstrap() {
   await initDb();
+
+  if (window.location.hash === "#/demo") {
+    const { seedDemoData } = await import("./lib/demoData");
+    await seedDemoData();
+  }
+
   const root = document.getElementById("root");
   if (!root) throw new Error("Root element not found");
 
