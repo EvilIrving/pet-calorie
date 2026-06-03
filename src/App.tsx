@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import BottomTabs, { type AppTab } from "./components/BottomTabs";
 import CatInfoBar from "./components/CatInfoBar";
 import PetSettingsSheet from "./components/PetSettingsSheet";
 import PetSwitcher from "./components/PetSwitcher";
 import type { CatProfile } from "./db";
+import { resetAllAppData } from "./db";
 import { type FeedingMode, isFoodConfiguredForMode } from "./lib/feeding";
 import CalcTab from "./pages/CalcTab";
 import DietTab from "./pages/DietTab";
@@ -16,6 +17,24 @@ export default function App() {
   const [tabReady, setTabReady] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [editingPet, setEditingPet] = useState<CatProfile | null>(null);
+  const resetClicks = useRef(0);
+  const resetTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const handleResetClick = useCallback(() => {
+    resetClicks.current += 1;
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+    if (resetClicks.current >= 3) {
+      resetClicks.current = 0;
+      const confirmed = window.confirm("确定清空全部数据？此操作不可恢复。");
+      if (confirmed) {
+        void resetAllAppData().then(() => window.location.reload());
+      }
+    } else {
+      resetTimer.current = setTimeout(() => {
+        resetClicks.current = 0;
+      }, 1000);
+    }
+  }, []);
 
   const loadCat = useCatStore((s) => s.load);
   const loadFoods = useFoodStore((s) => s.load);
@@ -41,12 +60,15 @@ export default function App() {
     }
   }, [loadFoods, activePetId]);
 
+  const onboardingDone = activePet?.onboardingDone;
+
   useEffect(() => {
     if (!catLoaded || !foodsLoaded || tabReady) return;
+    if (activePet && !onboardingDone) return;
     const feedingMode = (activePet?.feedingMode ?? "dry") as Exclude<FeedingMode, "none">;
     setTab(isFoodConfiguredForMode(feedingMode, foods) ? "diet" : "calc");
     setTabReady(true);
-  }, [catLoaded, foodsLoaded, tabReady, activePet?.feedingMode, foods]);
+  }, [catLoaded, foodsLoaded, tabReady, activePet?.feedingMode, onboardingDone, foods]);
 
   useEffect(() => {
     if (activePet && !activePet.onboardingDone && tabReady) {
@@ -98,7 +120,13 @@ export default function App() {
   return (
     <div className="mx-auto min-h-dvh max-w-md pb-24">
       <header className="px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1">
-        <h1 className="text-base font-semibold text-ink">宠物热量与减肥</h1>
+        <h1
+          className="text-base font-semibold text-ink select-none"
+          onClick={handleResetClick}
+          onKeyDown={() => {}}
+        >
+          宠物热量与减肥
+        </h1>
       </header>
 
       {activePet ? (
