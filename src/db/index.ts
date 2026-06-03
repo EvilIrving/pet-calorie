@@ -7,16 +7,21 @@ import {
   weightRange,
 } from "../config/nutrition";
 import type { MacroPercents } from "../lib/calculator";
+import type { FeedingMode } from "../lib/feeding";
 
 export interface CatProfile {
   id: number;
   species: Species;
   name: string;
   weightKg: number;
+  idealWeightKg: number | null;
   lifeStage: LifeStage;
   neutered: boolean;
   activity: ActivityLevel;
+  feedingMode: FeedingMode;
+  mixedDryRatio: number;
   dietStartDate: string | null;
+  dietStartWeightKg: number | null;
   onboardingDone: boolean;
   updatedAt: string;
 }
@@ -56,26 +61,6 @@ class CatDatabase extends Dexie {
       cat: "++id",
       foods: "++id, foodType, createdAt",
       weightLogs: "++id, date",
-    });
-    this.version(2)
-      .stores({
-        cat: "++id",
-        foods: "++id, foodType, createdAt",
-        weightLogs: "++id, date",
-      })
-      .upgrade(async (tx) => {
-        await tx
-          .table("cat")
-          .toCollection()
-          .modify((row: CatProfile & { species?: Species; onboardingDone?: boolean }) => {
-            row.species = row.species ?? "cat";
-            row.onboardingDone = row.onboardingDone ?? true;
-          });
-      });
-    this.version(3).stores({
-      cat: "++id",
-      foods: "++id, foodType, createdAt",
-      weightLogs: "++id, date",
       feedingLogs: "++id, &date",
     });
   }
@@ -89,7 +74,20 @@ export async function initDb(): Promise<void> {
 
 export async function getOrCreateCat(): Promise<CatProfile> {
   const existing = await db.cat.orderBy("id").first();
-  if (existing) return existing;
+  if (existing) {
+    const normalized: CatProfile = {
+      ...existing,
+      idealWeightKg: existing.idealWeightKg ?? null,
+      dietStartWeightKg: existing.dietStartWeightKg ?? null,
+    };
+    if (
+      normalized.idealWeightKg !== existing.idealWeightKg ||
+      normalized.dietStartWeightKg !== existing.dietStartWeightKg
+    ) {
+      await db.cat.put(normalized);
+    }
+    return normalized;
+  }
 
   const now = new Date().toISOString();
   const species: Species = "cat";
@@ -97,10 +95,14 @@ export async function getOrCreateCat(): Promise<CatProfile> {
     species,
     name: defaultPetName[species],
     weightKg: weightRange[species].defaultKg,
+    idealWeightKg: weightRange[species].defaultKg,
     lifeStage: "adult_neutered",
     neutered: true,
     activity: "low",
+    feedingMode: "dry",
+    mixedDryRatio: 0.5,
     dietStartDate: null,
+    dietStartWeightKg: null,
     onboardingDone: false,
     updatedAt: now,
   });

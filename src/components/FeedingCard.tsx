@@ -1,12 +1,14 @@
 import { Add20Filled, BowlSalad24Regular } from "@fluentui/react-icons";
 import type { FeedingLog } from "../db";
-import type { FeedingSummary } from "../lib/feeding";
+import { canRecordDry, canRecordWet, type FeedingMode, type FeedingSummary } from "../lib/feeding";
 
 export interface FeedingCardProps {
-  hasDry: boolean;
-  hasWet: boolean;
+  mode: FeedingMode;
+  hasDryDensity: boolean;
+  hasWetDensity: boolean;
   suggestedDryGrams: number | null;
   suggestedWetGrams: number | null;
+  mixedDryRatio: number | null;
   todayLog: FeedingLog | null;
   summary: FeedingSummary | null;
   onRecord: () => void;
@@ -32,21 +34,36 @@ function deltaText(deltaKcal: number): string {
 }
 
 export default function FeedingCard({
-  hasDry,
-  hasWet,
+  mode,
+  hasDryDensity,
+  hasWetDensity,
   suggestedDryGrams,
   suggestedWetGrams,
+  mixedDryRatio,
   todayLog,
   summary,
   onRecord,
 }: FeedingCardProps) {
-  const configured = hasDry || hasWet;
+  const hasDry = canRecordDry(mode);
+  const hasWet = canRecordWet(mode);
+  const canRecord =
+    mode === "dry" || mode === "wet"
+      ? (hasDry && hasDryDensity) || (hasWet && hasWetDensity)
+      : hasDryDensity && hasWetDensity;
 
   return (
     <section className="rounded-card bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between">
-        <h2 className="text-sm font-medium text-muted">今日建议</h2>
-        {configured ? (
+        <div>
+          <h2 className="text-sm font-medium text-muted">今日建议</h2>
+          {mixedDryRatio !== null ? (
+            <p className="mt-1 text-xs text-muted">
+              热量比例 干粮 {Math.round(mixedDryRatio * 100)}% · 湿粮{" "}
+              {Math.round((1 - mixedDryRatio) * 100)}%
+            </p>
+          ) : null}
+        </div>
+        {canRecord ? (
           <button
             type="button"
             className="flex min-h-9 items-center gap-1 rounded-full bg-accent px-3 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
@@ -59,13 +76,23 @@ export default function FeedingCard({
       </div>
 
       <div className="mt-3 flex flex-col gap-2">
-        <FoodRow label="干粮" value={gramsText(hasDry ? suggestedDryGrams : null)} />
-        <FoodRow label="湿粮" value={gramsText(hasWet ? suggestedWetGrams : null)} />
+        {hasDry ? (
+          <FoodRow
+            label={mode === "mixed" ? "干粮参考" : "干粮"}
+            value={gramsText(suggestedDryGrams)}
+          />
+        ) : null}
+        {hasWet ? (
+          <FoodRow
+            label={mode === "mixed" ? "湿粮参考" : "湿粮"}
+            value={gramsText(suggestedWetGrams)}
+          />
+        ) : null}
       </div>
 
-      {!configured ? (
+      {!canRecord ? (
         <p className="mt-4 py-4 text-center text-sm text-muted">
-          先在「热量计算」保存常用猫粮，才能记录实际喂食
+          先在「热量计算」保存当前模式需要的热量密度
         </p>
       ) : (
         <>
@@ -73,8 +100,8 @@ export default function FeedingCard({
           <h3 className="text-sm font-medium text-muted">今日实际</h3>
           {todayLog && summary ? (
             <div className="mt-3 flex flex-col gap-2">
-              <FoodRow label="干粮" value={gramsText(hasDry ? todayLog.dryGrams : null)} />
-              <FoodRow label="湿粮" value={gramsText(hasWet ? todayLog.wetGrams : null)} />
+              {hasDry ? <FoodRow label="干粮" value={gramsText(todayLog.dryGrams)} /> : null}
+              {hasWet ? <FoodRow label="湿粮" value={gramsText(todayLog.wetGrams)} /> : null}
               <div className="mt-1 flex items-baseline justify-between">
                 <p className="text-2xl font-bold leading-none text-ink tabular-nums">
                   {summary.actualKcal}

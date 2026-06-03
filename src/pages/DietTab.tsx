@@ -13,11 +13,13 @@ import {
   calcDietDailyKcal,
   calcDietProgressPercent,
   calcMer,
+  calcMixedFeedingPlan,
   calcRer,
+  calcSafeWeightLossPlan,
   getDietPhaseKey,
 } from "../lib/calculator";
 import { formatShortDate, toLocalDateString } from "../lib/date";
-import { summarizeFeeding } from "../lib/feeding";
+import { canRecordDry, canRecordWet, summarizeFeeding } from "../lib/feeding";
 import { summarizeWeightLogs } from "../lib/weightLog";
 import { useCatStore } from "../stores/catStore";
 import { useFoodStore } from "../stores/foodStore";
@@ -82,21 +84,41 @@ export default function DietTab() {
   const week = cat ? getDietWeek(cat.dietStartDate) : 1;
   const phaseKey = getDietPhaseKey(week, species);
   const phase = dietPhases[species][phaseKey];
-  const progress = calcDietProgressPercent(week, species);
-
-  const dailyKcal = cat ? calcDietDailyKcal(cat.weightKg, week, species) : 0;
-  const rer = cat ? calcRer(cat.weightKg) : 0;
+  const dietStartWeightKg = cat?.dietStartWeightKg ?? cat?.weightKg ?? 0;
+  const idealWeightKg = cat?.idealWeightKg ?? null;
+  const safePlan = calcSafeWeightLossPlan(dietStartWeightKg, idealWeightKg, week, species);
+  const progress =
+    safePlan.totalWeeksMax > 0
+      ? Math.min(100, Math.max(0, (week / safePlan.totalWeeksMax) * 100))
+      : calcDietProgressPercent(week, species);
+  const dietWeightKg = safePlan.targetWeightKg;
+  const dailyKcal = cat ? calcDietDailyKcal(cat.weightKg, week, species, dietWeightKg) : 0;
+  const rer = cat ? calcRer(dietWeightKg) : 0;
   const mer = cat ? calcMer(cat.weightKg, cat.lifeStage, cat.activity, cat.species) : 0;
   const dryFood = foods.find((f) => f.foodType === "dry");
   const wetFood = foods.find((f) => f.foodType === "wet");
-  const hasDry = !!dryFood && dryFood.kcalPerKg > 0;
-  const hasWet = !!wetFood && wetFood.kcalPerKg > 0;
-  const isMixed = hasDry && hasWet;
+  const hasDryDensity = !!dryFood && dryFood.kcalPerKg > 0;
+  const hasWetDensity = !!wetFood && wetFood.kcalPerKg > 0;
+  const feedingMode = cat?.feedingMode ?? "dry";
+  const recordsDry = canRecordDry(feedingMode);
+  const recordsWet = canRecordWet(feedingMode);
   const dryKcalPerKg = dryFood?.kcalPerKg ?? 0;
   const wetKcalPerKg = wetFood?.kcalPerKg ?? 0;
+  const mixedDryRatio = cat?.mixedDryRatio ?? 0.5;
+  const mixedPlan = calcMixedFeedingPlan(dailyKcal, dryKcalPerKg, wetKcalPerKg, mixedDryRatio);
 
-  const suggestedDryGrams = hasDry ? Math.round(calcDailyGrams(dailyKcal, dryKcalPerKg)) : null;
-  const suggestedWetGrams = hasWet ? Math.round(calcDailyGrams(dailyKcal, wetKcalPerKg)) : null;
+  const suggestedDryGrams =
+    recordsDry && hasDryDensity
+      ? Math.round(
+          feedingMode === "mixed" ? mixedPlan.dryGrams : calcDailyGrams(dailyKcal, dryKcalPerKg),
+        )
+      : null;
+  const suggestedWetGrams =
+    recordsWet && hasWetDensity
+      ? Math.round(
+          feedingMode === "mixed" ? mixedPlan.wetGrams : calcDailyGrams(dailyKcal, wetKcalPerKg),
+        )
+      : null;
 
   const feedingSummary = summarizeFeeding(todayFeeding, dryKcalPerKg, wetKcalPerKg, dailyKcal);
 
@@ -121,8 +143,9 @@ export default function DietTab() {
   }, [weightLogs]);
 
   const startDiet = async () => {
+    if (!cat) return;
     if (!cat?.dietStartDate) {
-      await updateCat({ dietStartDate: new Date().toISOString() });
+      await updateCat({ dietStartDate: new Date().toISOString(), dietStartWeightKg: cat.weightKg });
     }
   };
 
@@ -218,16 +241,24 @@ export default function DietTab() {
           </span>
           <span className="flex items-center gap-1">
             <DataTrending24Regular className="size-4 text-accent" aria-hidden />
-            RER {Math.round(rer)} · MER {Math.round(mer)}
+            目标RER {Math.round(rer)} · MER {Math.round(mer)}
           </span>
         </div>
+        {safePlan.totalWeeksMax > 0 ? (
+          <p className="mt-3 text-xs text-muted">
+            本周安全目标 {safePlan.targetMinKg.toFixed(1)}–{safePlan.targetMaxKg.toFixed(1)} kg
+            ，速率 {(safePlan.rateMin * 100).toFixed(1)}–{(safePlan.rateMax * 100).toFixed(1)}%/周
+          </p>
+        ) : null}
       </section>
 
       <FeedingCard
-        hasDry={hasDry}
-        hasWet={hasWet}
+        mode={feedingMode}
+        hasDryDensity={hasDryDensity}
+        hasWetDensity={hasWetDensity}
         suggestedDryGrams={suggestedDryGrams}
         suggestedWetGrams={suggestedWetGrams}
+        mixedDryRatio={feedingMode === "mixed" ? mixedDryRatio : null}
         todayLog={todayFeeding}
         summary={feedingSummary}
         onRecord={() => setFeedingSheetOpen(true)}
@@ -258,13 +289,12 @@ export default function DietTab() {
 
       {feedingSheetOpen ? (
         <FeedingLogSheet
-          hasDry={hasDry}
-          hasWet={hasWet}
+          mode={feedingMode}
           dryKcalPerKg={dryKcalPerKg}
           wetKcalPerKg={wetKcalPerKg}
           targetKcal={dailyKcal}
-          initialDryGrams={todayFeeding?.dryGrams ?? (isMixed ? 0 : (suggestedDryGrams ?? 0))}
-          initialWetGrams={todayFeeding?.wetGrams ?? (isMixed ? 0 : (suggestedWetGrams ?? 0))}
+          initialDryGrams={todayFeeding?.dryGrams ?? (recordsDry ? (suggestedDryGrams ?? 0) : 0)}
+          initialWetGrams={todayFeeding?.wetGrams ?? (recordsWet ? (suggestedWetGrams ?? 0) : 0)}
           initialDate={today}
           onClose={() => setFeedingSheetOpen(false)}
           onSave={saveFeedingLog}

@@ -16,7 +16,7 @@ export default function PetSettingsSheet({ cat, onClose, onSave }: PetSettingsSh
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#f5f6f8]/95 backdrop-blur-md"
+      className="fixed inset-0 z-[60] flex flex-col bg-[#f5f6f8]/95 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label="宠物设置"
@@ -32,7 +32,7 @@ export default function PetSettingsSheet({ cat, onClose, onSave }: PetSettingsSh
           <Dismiss24Regular className="size-6 text-muted" aria-hidden />
         </button>
       </header>
-      <div className="flex-1 overflow-y-auto px-4 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 pb-[max(6rem,env(safe-area-inset-bottom))]">
         <PetProfileForm initial={cat} submitLabel="保存" onSubmit={handleSave} />
       </div>
     </div>

@@ -7,15 +7,16 @@ import {
   weightRange,
 } from "../config/nutrition";
 import type { CatProfile } from "../db";
-import { clampAgeMonths, lifeStageToMonths, monthsToAgeBand, monthsToLifeStage } from "../lib/age";
+import { clampAgeMonths, lifeStageToMonths, monthsToLifeStage } from "../lib/age";
 import AgeProgressBar from "./AgeProgressBar";
+import DecimalWheelPicker from "./DecimalWheelPicker";
 import SegmentControl from "./SegmentControl";
-import Stepper from "./Stepper";
 
 export interface PetProfileFormValues {
   species: Species;
   name: string;
   weightKg: number;
+  idealWeightKg: number | null;
   lifeStage: LifeStage;
   neutered: boolean;
   activity: ActivityLevel;
@@ -36,6 +37,7 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
   const [species, setSpecies] = useState<Species>(initial.species);
   const [name, setName] = useState(initial.name);
   const [weightKg, setWeightKg] = useState(initial.weightKg);
+  const [idealWeightKg, setIdealWeightKg] = useState(initial.idealWeightKg ?? initial.weightKg);
   const [ageMonths, setAgeMonths] = useState(() =>
     lifeStageToMonths(initial.species, initial.lifeStage),
   );
@@ -46,11 +48,9 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
 
   useEffect(() => {
     setWeightKg((w) => clampWeight(species, w));
+    setIdealWeightKg((w) => clampWeight(species, w));
     setAgeMonths((m) => clampAgeMonths(species, m));
   }, [species]);
-
-  const range = weightRange[species];
-  const showNeutered = monthsToAgeBand(species, ageMonths) === "adult";
 
   const handleSpeciesChange = (next: Species) => {
     setSpecies(next);
@@ -65,6 +65,7 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
       species,
       name: trimmed.length > 0 ? trimmed : defaultPetName[species],
       weightKg: clampWeight(species, weightKg),
+      idealWeightKg: clampWeight(species, idealWeightKg),
       lifeStage,
       neutered,
       activity,
@@ -109,16 +110,21 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
 
       <div>
         <p className="mb-2 text-sm text-muted">体重</p>
-        <Stepper
-          aria-label="体重"
+        <DecimalWheelPicker
+          species={species}
           value={weightKg}
           onChange={setWeightKg}
-          step={0.1}
-          min={range.min}
-          max={range.max}
-          decimals={1}
-          unit="kg"
-          inputMode="decimal"
+          aria-label="体重尺子"
+        />
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm text-muted">目标体重</p>
+        <DecimalWheelPicker
+          species={species}
+          value={idealWeightKg}
+          onChange={setIdealWeightKg}
+          aria-label="目标体重尺子"
         />
       </div>
 
@@ -127,20 +133,18 @@ export default function PetProfileForm({ initial, submitLabel, onSubmit }: PetPr
         <AgeProgressBar species={species} ageMonths={ageMonths} onAgeMonthsChange={setAgeMonths} />
       </div>
 
-      {showNeutered ? (
-        <div>
-          <p className="mb-3 text-sm text-muted">是否绝育</p>
-          <SegmentControl
-            aria-label="是否绝育"
-            options={[
-              { value: "yes", label: "是" },
-              { value: "no", label: "否" },
-            ]}
-            value={neutered ? "yes" : "no"}
-            onChange={(v) => setNeutered(v === "yes")}
-          />
-        </div>
-      ) : null}
+      <div>
+        <p className="mb-3 text-sm text-muted">是否绝育</p>
+        <SegmentControl
+          aria-label="是否绝育"
+          options={[
+            { value: "yes", label: "是" },
+            { value: "no", label: "否" },
+          ]}
+          value={neutered ? "yes" : "no"}
+          onChange={(v) => setNeutered(v === "yes")}
+        />
+      </div>
 
       <div>
         <p className="mb-3 text-sm text-muted">活动量</p>

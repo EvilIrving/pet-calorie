@@ -127,6 +127,12 @@ export const dietPhases = {
 
 export type DietPhaseKey = keyof (typeof dietPhases)["cat"];
 
+/** 安全减重速率（每周体重百分比） */
+export const safeWeightLossRate = {
+  cat: { min: 0.005, max: 0.01 },
+  dog: { min: 0.01, max: 0.02 },
+} as const;
+
 /** RER 下限保护（防限饲过度，按物种） */
 export const minRerRatio: Record<Species, number> = {
   cat: 0.8,
@@ -138,3 +144,10 @@ export const defaultDryKcalPerKg = 3500;
 
 /** 湿粮默认热量密度 kcal/kg */
 export const defaultWetKcalPerKg = 900;
+
+/** 热量密度滚轮范围 kcal/kg */
+export const energyDensityRange = {
+  min: 500,
+  max: 6000,
+  step: 50,
+} as const;

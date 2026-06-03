@@ -8,6 +8,7 @@ import {
   lifeFactor,
   minRerRatio,
   type Species,
+  safeWeightLossRate,
 } from "../config/nutrition";
 
 export interface MacroPercents {
@@ -37,27 +38,46 @@ export function calcMer(
 
 export interface MacroAnalysis {
   dryMatterPercent: number;
+  nfePercentAsFed: number;
   nfePercentOnDryMatter: number;
   kcalPer100g: number;
   kcalPerKg: number;
 }
 
-function macroDryMatterParts(macros: MacroPercents) {
-  const dryMatter = 100 - macros.moisture - macros.ash - macros.fiber;
-  if (dryMatter <= 0) {
-    return { dryMatter: 0, proteinDm: 0, fatDm: 0, nfeDm: 0 };
-  }
-  const proteinDm = (macros.protein / 100) * dryMatter;
-  const fatDm = (macros.fat / 100) * dryMatter;
-  const nfeDm = Math.max(0, dryMatter - proteinDm - fatDm);
-  return { dryMatter, proteinDm, fatDm, nfeDm };
+export interface MixedFeedingPlan {
+  dryRatio: number;
+  wetRatio: number;
+  dryKcal: number;
+  wetKcal: number;
+  dryGrams: number;
+  wetGrams: number;
+}
+
+export interface SafeWeightLossPlan {
+  rateMin: number;
+  rateMax: number;
+  targetMinKg: number;
+  targetMaxKg: number;
+  targetWeightKg: number;
+  totalWeeksMin: number;
+  totalWeeksMax: number;
+}
+
+function macroAsFedParts(macros: MacroPercents) {
+  const dryMatter = Math.max(0, 100 - macros.moisture);
+  const nfeAsFed = Math.max(
+    0,
+    100 - macros.protein - macros.fat - macros.ash - macros.fiber - macros.moisture,
+  );
+  return { dryMatter, nfeAsFed };
 }
 
 export function calcMacroAnalysis(macros: MacroPercents): MacroAnalysis {
-  const { dryMatter, nfeDm } = macroDryMatterParts(macros);
+  const { dryMatter, nfeAsFed } = macroAsFedParts(macros);
   if (dryMatter <= 0) {
     return {
       dryMatterPercent: 0,
+      nfePercentAsFed: 0,
       nfePercentOnDryMatter: 0,
       kcalPer100g: 0,
       kcalPerKg: 0,
@@ -66,22 +86,91 @@ export function calcMacroAnalysis(macros: MacroPercents): MacroAnalysis {
   const kcalPer100g = calcKcalFromMacros(macros);
   return {
     dryMatterPercent: dryMatter,
-    nfePercentOnDryMatter: (nfeDm / dryMatter) * 100,
+    nfePercentAsFed: nfeAsFed,
+    nfePercentOnDryMatter: (nfeAsFed / dryMatter) * 100,
     kcalPer100g,
     kcalPerKg: kcalPer100g * 10,
   };
 }
 
 export function calcKcalFromMacros(macros: MacroPercents): number {
-  const { proteinDm, fatDm, nfeDm } = macroDryMatterParts(macros);
-  if (proteinDm === 0 && fatDm === 0 && nfeDm === 0) return 0;
-  return proteinDm * atwater.protein + fatDm * atwater.fat + nfeDm * atwater.nfe;
+  const { dryMatter, nfeAsFed } = macroAsFedParts(macros);
+  if (dryMatter <= 0) return 0;
+  return macros.protein * atwater.protein + macros.fat * atwater.fat + nfeAsFed * atwater.nfe;
 }
 
 /** 每日可喂克数 */
 export function calcDailyGrams(dailyKcal: number, kcalPerKg: number): number {
   if (kcalPerKg <= 0 || dailyKcal <= 0) return 0;
   return (dailyKcal / kcalPerKg) * 1000;
+}
+
+function clampRatio(value: number): number {
+  if (!Number.isFinite(value)) return 0.5;
+  return Math.min(1, Math.max(0, value));
+}
+
+export function calcMixedFeedingPlan(
+  dailyKcal: number,
+  dryKcalPerKg: number,
+  wetKcalPerKg: number,
+  dryRatio: number,
+): MixedFeedingPlan {
+  const safeDailyKcal = Math.max(0, dailyKcal);
+  const safeDryRatio = clampRatio(dryRatio);
+  const wetRatio = 1 - safeDryRatio;
+  const dryKcal = safeDailyKcal * safeDryRatio;
+  const wetKcal = safeDailyKcal * wetRatio;
+  return {
+    dryRatio: safeDryRatio,
+    wetRatio,
+    dryKcal,
+    wetKcal,
+    dryGrams: calcDailyGrams(dryKcal, dryKcalPerKg),
+    wetGrams: calcDailyGrams(wetKcal, wetKcalPerKg),
+  };
+}
+
+function calcWeeksToWeight(startWeightKg: number, idealWeightKg: number, rate: number): number {
+  if (startWeightKg <= idealWeightKg || rate <= 0 || rate >= 1) return 0;
+  return Math.max(1, Math.ceil(Math.log(idealWeightKg / startWeightKg) / Math.log(1 - rate)));
+}
+
+export function calcSafeWeightLossPlan(
+  startWeightKg: number,
+  idealWeightKg: number | null,
+  week: number,
+  species: Species,
+): SafeWeightLossPlan {
+  const rate = safeWeightLossRate[species];
+  const safeWeek = Math.max(1, Math.floor(week));
+  const safeStart = Math.max(0, startWeightKg);
+  const safeIdeal =
+    idealWeightKg && idealWeightKg > 0 ? Math.min(idealWeightKg, safeStart) : safeStart;
+
+  if (safeStart <= 0 || safeIdeal >= safeStart) {
+    return {
+      rateMin: rate.min,
+      rateMax: rate.max,
+      targetMinKg: safeStart,
+      targetMaxKg: safeStart,
+      targetWeightKg: safeStart,
+      totalWeeksMin: 0,
+      totalWeeksMax: 0,
+    };
+  }
+
+  const targetMinKg = Math.max(safeIdeal, safeStart * (1 - rate.max) ** safeWeek);
+  const targetMaxKg = Math.max(safeIdeal, safeStart * (1 - rate.min) ** safeWeek);
+  return {
+    rateMin: rate.min,
+    rateMax: rate.max,
+    targetMinKg,
+    targetMaxKg,
+    targetWeightKg: targetMaxKg,
+    totalWeeksMin: calcWeeksToWeight(safeStart, safeIdeal, rate.max),
+    totalWeeksMax: calcWeeksToWeight(safeStart, safeIdeal, rate.min),
+  };
 }
 
 export function getDietPhaseKey(week: number, _species: Species = "cat"): DietPhaseKey {
@@ -101,8 +190,10 @@ export function calcDietDailyKcal(
   weightKg: number,
   week: number,
   species: Species = "cat",
+  idealWeightKg: number | null = null,
 ): number {
-  const rer = calcRer(weightKg);
+  const targetWeightKg = idealWeightKg && idealWeightKg > 0 ? idealWeightKg : weightKg;
+  const rer = calcRer(targetWeightKg);
   if (rer <= 0) return 0;
   const ratio = getDietPhaseRatio(week, species);
   const target = rer * ratio;

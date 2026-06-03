@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { calcFeedingKcal, summarizeFeeding } from "./feeding";
+import { calcFeedingKcal, deriveFeedingMode, summarizeFeeding } from "./feeding";
+
+describe("deriveFeedingMode", () => {
+  it("supports dry only, wet only, mixed, and unconfigured modes", () => {
+    expect(deriveFeedingMode(true, false)).toBe("dry");
+    expect(deriveFeedingMode(false, true)).toBe("wet");
+    expect(deriveFeedingMode(true, true)).toBe("mixed");
+    expect(deriveFeedingMode(false, false)).toBe("none");
+  });
+});
 
 describe("calcFeedingKcal", () => {
   it("sums dry and wet grams by density", () => {

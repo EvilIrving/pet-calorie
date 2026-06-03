@@ -1,10 +1,27 @@
 import type { FeedingLog } from "../db";
 
+export type FeedingMode = "none" | "dry" | "wet" | "mixed";
+
 export interface FeedingSummary {
   /** 实际摄入热量（kcal/天） */
   actualKcal: number;
   /** 相对目标的差值（kcal，正=多喂），保留整数 */
   deltaKcal: number;
+}
+
+export function deriveFeedingMode(hasDry: boolean, hasWet: boolean): FeedingMode {
+  if (hasDry && hasWet) return "mixed";
+  if (hasDry) return "dry";
+  if (hasWet) return "wet";
+  return "none";
+}
+
+export function canRecordDry(mode: FeedingMode): boolean {
+  return mode === "dry" || mode === "mixed";
+}
+
+export function canRecordWet(mode: FeedingMode): boolean {
+  return mode === "wet" || mode === "mixed";
 }
 
 /** 单类粮克数 × 热量密度(kcal/kg) → kcal；克数为空或密度无效时记 0 */

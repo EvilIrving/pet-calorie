@@ -66,13 +66,7 @@ export default function AgeProgressBar({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-base font-semibold text-ink">{cfg.bandLabels[band]}</p>
-        <p className="text-sm text-muted tabular-nums">{formatPetAge(ageMonths)}</p>
-      </div>
-
       <div
-        ref={trackRef}
         role="slider"
         aria-label="年龄段"
         aria-valuemin={cfg.minMonths}
@@ -80,44 +74,45 @@ export default function AgeProgressBar({
         aria-valuenow={ageMonths}
         aria-valuetext={`${cfg.bandLabels[band]}，${formatPetAge(ageMonths)}`}
         tabIndex={0}
-        className="relative touch-none py-4 outline-none focus-visible:ring-2 focus-visible:ring-accent/30 rounded-2xl"
+        className="relative touch-none pt-7 pb-4 outline-none focus-visible:ring-2 focus-visible:ring-accent/30 rounded-2xl"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
       >
-        <div className="relative h-2 overflow-hidden rounded-full bg-line/70">
-          {/* 由浅入深的进阶渐变：青 → 翠绿 → 翡翠绿 */}
-          <div className="absolute inset-0 bg-linear-to-r from-phase-cyan via-phase-emerald to-phase-jade" />
-          {/* 未到达部分用半透明遮罩淡化，保留渐变色相 */}
+        <p className="absolute top-0 right-0 text-sm text-muted">{cfg.bandLabels[band]}</p>
+        <p className="absolute top-0 left-1/2 -translate-x-1/2 text-base font-semibold text-ink tabular-nums">
+          {formatPetAge(ageMonths)}
+        </p>
+
+        <div ref={trackRef} className="relative flex h-6 items-center">
+          <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-line/70">
+            {/* 由浅入深的进阶渐变：青 → 翠绿 → 翡翠绿 */}
+            <div className="absolute inset-0 bg-linear-to-r from-phase-cyan via-phase-emerald to-phase-jade" />
+            {/* 未到达部分用半透明遮罩淡化，保留渐变色相 */}
+            <div
+              className="absolute inset-y-0 right-0 bg-surface/75"
+              style={{ left: thumbPercent }}
+            />
+            {/* 阶段分隔刻度，细微示意三段 */}
+            <div
+              className="absolute inset-y-0 w-px bg-card/60"
+              style={{ left: `${boundary1}%` }}
+              aria-hidden
+            />
+            <div
+              className="absolute inset-y-0 w-px bg-card/60"
+              style={{ left: `${boundary2}%` }}
+              aria-hidden
+            />
+          </div>
+
           <div
-            className="absolute inset-y-0 right-0 bg-surface/75"
+            className="pointer-events-none absolute top-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-card shadow-[0_2px_8px_rgba(0,0,0,0.18)] ring-1 ring-black/5"
             style={{ left: thumbPercent }}
-          />
-          {/* 阶段分隔刻度，细微示意三段 */}
-          <div
-            className="absolute inset-y-0 w-px bg-card/60"
-            style={{ left: `${boundary1}%` }}
             aria-hidden
-          />
-          <div
-            className="absolute inset-y-0 w-px bg-card/60"
-            style={{ left: `${boundary2}%` }}
-            aria-hidden
-          />
+          >
+            <span className="size-2.5 rounded-full bg-accent" />
+          </div>
         </div>
-
-        <div
-          className="pointer-events-none absolute top-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-card shadow-[0_2px_8px_rgba(0,0,0,0.18)] ring-1 ring-black/5"
-          style={{ left: thumbPercent }}
-          aria-hidden
-        >
-          <span className="size-2.5 rounded-full bg-accent" />
-        </div>
-      </div>
-
-      <div className="flex justify-between text-xs text-muted">
-        <span>{cfg.bandLabels.kitten}</span>
-        <span>{cfg.bandLabels.adult}</span>
-        <span>{cfg.bandLabels.senior}</span>
       </div>
     </div>
   );

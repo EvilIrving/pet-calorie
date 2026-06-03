@@ -41,7 +41,9 @@ export default function MacroStepperForm({ macros, onChange }: MacroStepperFormP
           干物质{" "}
           <span className="font-semibold text-ink">{analysis.dryMatterPercent.toFixed(1)}%</span>
           {" · "}
-          NFE{" "}
+          NFE <span className="font-semibold text-ink">{analysis.nfePercentAsFed.toFixed(1)}%</span>
+          {" · "}
+          干物NFE{" "}
           <span className="font-semibold text-ink">
             {analysis.nfePercentOnDryMatter.toFixed(1)}%
           </span>
