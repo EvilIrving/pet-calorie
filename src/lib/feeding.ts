@@ -2,6 +2,11 @@ import type { FeedingLog } from "../db";
 
 export type FeedingMode = "none" | "dry" | "wet" | "mixed";
 
+export interface FoodDensityRef {
+  foodType: "dry" | "wet";
+  kcalPerKg: number;
+}
+
 export interface FeedingSummary {
   /** 实际摄入热量（kcal/天） */
   actualKcal: number;
@@ -14,6 +19,22 @@ export function deriveFeedingMode(hasDry: boolean, hasWet: boolean): FeedingMode
   if (hasDry) return "dry";
   if (hasWet) return "wet";
   return "none";
+}
+
+export function hasFoodDensity(foods: FoodDensityRef[], foodType: "dry" | "wet"): boolean {
+  return foods.some((food) => food.foodType === foodType && food.kcalPerKg > 0);
+}
+
+/** 当前喂食模式是否已具备可用的保存热量密度（与减肥计划 Tab 展示口径一致） */
+export function isFoodConfiguredForMode(
+  mode: Exclude<FeedingMode, "none">,
+  foods: FoodDensityRef[],
+): boolean {
+  const hasDry = hasFoodDensity(foods, "dry");
+  const hasWet = hasFoodDensity(foods, "wet");
+  if (mode === "mixed") return hasDry && hasWet;
+  if (mode === "dry") return hasDry;
+  return hasWet;
 }
 
 export function canRecordDry(mode: FeedingMode): boolean {

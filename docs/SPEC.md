@@ -30,7 +30,7 @@ App
 
 ### 导航
 
-底部悬浮胶囊 Tabs，两个按钮：`热量计算` / `减肥计划`，固定在屏幕底部，背景模糊 blur。
+底部悬浮胶囊 Tabs，两个按钮：`热量计算` / `减肥计划`，固定在屏幕底部，背景模糊 blur。首次进入应用时：若已保存常用猫粮/狗粮且满足当前喂食模式的热量密度（干粮模式需干粮 `kcal/kg > 0`；湿粮模式需湿粮；混合模式需干湿均有），**默认选中「减肥计划」**；否则默认选中「热量计算」。用户可随时切换，当次会话内记住选择。
 
 ### 输入交互原则（移动端优先）
 
@@ -39,6 +39,9 @@ App
 - 数字（kcal/kg、成分百分比、体重）→ 大号步进器（＋/－ 长按连增）或滚轮选择器，配合 `inputMode="decimal"` 唤起数字键盘，**不使用** `<input type=number>` 的浏览器原生加减箭头与滚轮调值。
 - 切换类（食物类型、热量输入方式）→ Segment / bordered button group，点击切换，非下拉 `<select>`。
 - 触控目标 ≥ 44×44pt，反馈即时（按压态 + 轻震动 haptics）。
+- **全局禁用浏览器默认聚焦样式**：在 `src/index.css` 的 `@layer base` 对 `*`、`:focus`、`:focus-visible` 统一设置 `outline: none` 与 `-webkit-tap-highlight-color: transparent`，避免点击图表（Recharts SVG）、非表单区域等出现系统蓝框或 iOS 灰色高亮，保持类原生 App 观感。
+- 需要聚焦反馈的控件（如文本输入、可拖拽进度条）**不得**依赖浏览器 `outline`，改用 Tailwind 的 `focus:ring-*` / `focus-visible:ring-*`（`box-shadow`）或边框色变化；键盘导航场景优先 `focus-visible`，避免触控点击时出现多余环。
+- **图表（Recharts）**：折线图等纯展示/点选 tooltip 的图表设置 `accessibilityLayer={false}`，避免图表容器获得焦点；曲线类型仍为 `type="natural"` / `monotone`。
 
 表单控件选择规则：
 

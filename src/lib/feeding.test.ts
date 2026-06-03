@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { calcFeedingKcal, deriveFeedingMode, summarizeFeeding } from "./feeding";
+import {
+  calcFeedingKcal,
+  deriveFeedingMode,
+  isFoodConfiguredForMode,
+  summarizeFeeding,
+} from "./feeding";
 
 describe("deriveFeedingMode", () => {
   it("supports dry only, wet only, mixed, and unconfigured modes", () => {
@@ -7,6 +12,25 @@ describe("deriveFeedingMode", () => {
     expect(deriveFeedingMode(false, true)).toBe("wet");
     expect(deriveFeedingMode(true, true)).toBe("mixed");
     expect(deriveFeedingMode(false, false)).toBe("none");
+  });
+});
+
+describe("isFoodConfiguredForMode", () => {
+  const dryOnly = [{ foodType: "dry" as const, kcalPerKg: 3500 }];
+  const wetOnly = [{ foodType: "wet" as const, kcalPerKg: 900 }];
+  const both = [...dryOnly, ...wetOnly];
+
+  it("requires density matching the active feeding mode", () => {
+    expect(isFoodConfiguredForMode("dry", dryOnly)).toBe(true);
+    expect(isFoodConfiguredForMode("dry", wetOnly)).toBe(false);
+    expect(isFoodConfiguredForMode("wet", wetOnly)).toBe(true);
+    expect(isFoodConfiguredForMode("mixed", both)).toBe(true);
+    expect(isFoodConfiguredForMode("mixed", dryOnly)).toBe(false);
+  });
+
+  it("ignores zero or missing densities", () => {
+    expect(isFoodConfiguredForMode("dry", [{ foodType: "dry", kcalPerKg: 0 }])).toBe(false);
+    expect(isFoodConfiguredForMode("dry", [])).toBe(false);
   });
 });
 
