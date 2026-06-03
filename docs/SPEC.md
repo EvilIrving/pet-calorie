@@ -5,8 +5,9 @@
 
 ```
 App
-├── 猫咪信息（首次引导 / 设置入口）
-│   ├── 名字、体重(kg)、年龄段、是否绝育、活动量
+├── 宠物信息（首次引导 / 设置入口）
+│   ├── 物种切换（猫 / 狗，Segment）
+│   ├── 名字、体重(kg)、年龄段、是否绝育、活动量（系数随物种从 `nutrition.ts` 读取）
 │   └── 存 IndexedDB，全局共享
 │
 ├── Tab 1：热量计算
@@ -39,11 +40,20 @@ App
 - 切换类（食物类型、热量输入方式）→ Segment / bordered button group，点击切换，非下拉 `<select>`。
 - 触控目标 ≥ 44×44pt，反馈即时（按压态 + 轻震动 haptics）。
 
+表单控件选择规则：
+
+- `体重` / `kcal/kg` / `成分百分比` → 使用项目内自定义 `<Stepper>`，中间输入框为 `type="text"` + `inputMode="decimal"`，左右按钮支持长按连增；适合需要精确微调的连续数值。
+- `成分反算` 表单 → 默认展开为一组成分 `<Stepper>`：蛋白、脂肪、灰分、纤维、水分；输入过程中实时计算 NFE / kcal/kg。
+- `年龄段` / `是否绝育` / `活动量` / `食物类型` / `热量输入方式` → 使用 Segment 或 bordered button group；选项少、决策明确，禁止使用 `<select>`。
+- `体重记录` → 默认使用底部面板里的大号 `<Stepper>` 录入今日体重；若需要在有限范围内快速选择，可使用 `<WheelPicker>`。
+- `名字` → 使用普通文本输入，但高度、间距与按压区域仍需满足移动端触控目标。
+- `日期` → 默认今天，提供“今天 / 昨天”快捷按钮；需要补录历史记录时再进入日期选择，避免打断主流程。
+
 ### 热量计算 Tab
 
 ```
 ┌─────────────────────────────┐
-│  🐱 小橘 · 4.2kg            │  ← 顶部猫咪信息条（点击进设置）
+│  🐱 小橘 · 4.2kg            │  ← 顶部宠物信息条（猫/狗图标，点击进设置）
 ├─────────────────────────────┤
 │  [干粮]  [湿粮]              │  ← Segment Control
 ├─────────────────────────────┤
@@ -102,27 +112,42 @@ App
 所有系数放 `src/config/nutrition.ts`：
 
 ```ts
-// 减肥阶段因子
-dietPhases: {
-  transition: { weeks: [1, 2], factor: 1.0 },
-  main:       { weeks: [3, 6], factor: 0.8 },
-  intensive:  { weeks: [7, +∞], factor: 0.7 },
+// RER 静息能量 (kcal/day) = 70 × 体重kg^0.75   ← 猫狗通用的标准异速生长公式
+
+// 维持能量 MER = RER × lifeFactor × activity   ← 用于「热量计算 Tab」日常喂养量
+// 生命因子（按物种，× RER）：符合 WSAVA / NRC 标准 DER 倍数
+lifeFactor: {
+  cat: { kitten: 2.0, adult_neutered: 1.2, adult_intact: 1.4, senior: 1.1 },
+  dog: { kitten: 2.0, adult_neutered: 1.6, adult_intact: 1.8, senior: 1.4 },
 }
 
-// Atwater 修正系数 (kcal/g)
+// 活动系数（× RER）：狗活动差异远大于猫，high 段上调以覆盖运动犬/工作犬
+activity: { low: 1.0, moderate: 1.2, high: 1.4 }
+
+// Atwater 修正系数 (kcal/g)：宠物食品标准值，与物种无关
 atwater: { protein: 3.5, fat: 8.5, nfe: 3.5 }
 
-// 生命因子
-lifeFactor: {
-  kitten: 2.0,
-  adult_neutered: 1.2,
-  adult_intact: 1.4,
-  senior: 1.1,
+// 减肥目标 = RER × dietRatio   ← 直接锚定 RER，按物种区分；
+// 不再用 MER×折扣（狗维持倍数高，折扣后仍远超 RER，无法形成热量缺口）。
+// 猫：掉秤须慢、防肝脂沉积，限饲较保守；狗：可耐受更强限饲。
+dietPhases: {
+  cat: {
+    transition: { weeks: [1, 2],  ratio: 1.0  },
+    main:       { weeks: [3, 6],  ratio: 0.85 },
+    intensive:  { weeks: [7, +∞], ratio: 0.8  },
+  },
+  dog: {
+    transition: { weeks: [1, 2],  ratio: 1.0  },
+    main:       { weeks: [3, 6],  ratio: 0.8  },
+    intensive:  { weeks: [7, +∞], ratio: 0.65 },
+  },
 }
 
-// RER 下限保护
-minRerRatio: 0.8
+// RER 下限保护（防限饲过度，按物种；猫肝脂沉积风险高，下限更保守）
+minRerRatio: { cat: 0.8, dog: 0.6 }
 ```
+
+> **减肥口径说明**：目标热量按「当前体重的 RER × 当前阶段 ratio」计算。`ratio = 1.0` 表示喂到 RER 维持静息所需（过渡期不制造缺口），随阶段推进逐步降低形成热量缺口。最终结果以 `minRerRatio` 对应物种值兜底，不会低于安全下限。安全减重速率：猫约 0.5–1%/周，狗约 1–2%/周。
 
 ---
 
@@ -152,7 +177,7 @@ src/
 ├── db/
 │   └── index.ts           ← Dexie schema
 ├── stores/
-│   ├── catStore.ts        ← 猫咪信息
+│   ├── catStore.ts        ← 宠物信息（含物种 cat | dog）
 │   └── foodStore.ts       ← 猫粮配置
 ├── lib/
 │   └── calculator.ts      ← 纯函数计算逻辑（含测试）
