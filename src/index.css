@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #f5f6f8;
+  --color-card: #ffffff;
+  --color-ink: #1c1c1e;
+  --color-muted: #8e8e93;
+  --color-line: #e5e7eb;
+  --color-accent: #10b981;
+  --color-accent-press: #059669;
+  --color-phase-cyan: #22d3ee;
+  --color-phase-emerald: #34d399;
+  --color-phase-jade: #059669;
+  --radius-card: 1.25rem;
+  --radius-pill: 9999px;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply m-0 min-h-dvh bg-surface font-sans text-ink antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+  }
+
+  #root {
+    @apply min-h-dvh;
+  }
+}
+
+@utility no-spin {
+  -moz-appearance: textfield;
+  appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
