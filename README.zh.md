@@ -83,6 +83,12 @@ react-cat/
 - **成分反算**：AAFCO 修正 Atwater，`NFE = 100 - 蛋白 - 脂肪 - 纤维 - 水分 - 灰分`
 - **减重**：固定 0.5–1%/周目标体重区间；热量目标 = `MER - ((参考体重 - 本周目标体重) × 7700 / 7)`
 
+## 部署
+
+线上地址：**[https://evilirving.github.io/pet-calorie/](https://evilirving.github.io/pet-calorie/)**
+
+推送到 `main` 分支会触发 [GitHub Actions 工作流](.github/workflows/deploy-pages.yml)，执行 `pnpm build` 并将 `dist` 发布到 GitHub Pages。请在仓库 **Settings → Pages** 中将 **Source** 设为 **GitHub Actions**（若尚未启用，需一次性配置）。
+
 ## 参与开发
 
 1. **规格优先**：涉及界面、交互、计算规则或数据模型的变更，须先更新 `docs/SPEC.md`，再改代码。

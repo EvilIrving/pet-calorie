@@ -83,6 +83,12 @@ Full formulas, references, and product rules: [`docs/SPEC.md`](docs/SPEC.md).
 - **Macro reverse-calc**: AAFCO modified Atwater; `NFE = 100 - protein - fat - fiber - moisture - ash`
 - **Weight loss**: fixed 0.5–1%/week target weight band; calorie target = `MER - ((referenceWeight - weeklyTargetWeight) × 7700 / 7)`
 
+## Deployment
+
+Live app: **[https://evilirving.github.io/pet-calorie/](https://evilirving.github.io/pet-calorie/)**
+
+Pushes to `main` trigger the [GitHub Actions workflow](.github/workflows/deploy-pages.yml), which builds with `pnpm build` and publishes `dist` to GitHub Pages. In the repo **Settings → Pages**, set **Source** to **GitHub Actions** (one-time setup if not already enabled).
+
 ## Contributing
 
 1. **Spec first**: Update `docs/SPEC.md` before code when changing UI, interaction, calculations, or data models.
