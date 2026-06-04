@@ -13,6 +13,14 @@ export function addDays(isoDate: string, days: number): string {
   return toLocalDateString(date);
 }
 
+export function diffDays(fromIsoDate: string, toIsoDate: string): number {
+  const [fromY, fromM, fromD] = fromIsoDate.split("-").map(Number);
+  const [toY, toM, toD] = toIsoDate.split("-").map(Number);
+  const from = Date.UTC(fromY, fromM - 1, fromD);
+  const to = Date.UTC(toY, toM - 1, toD);
+  return Math.floor((to - from) / 86_400_000);
+}
+
 export function formatShortDate(isoDate: string): string {
   const [, month, day] = isoDate.split("-");
   return `${Number(month)}/${Number(day)}`;

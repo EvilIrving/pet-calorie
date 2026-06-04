@@ -7,6 +7,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useI18n } from "../i18n";
+import { useUnit } from "../unit";
 
 export interface WeightChartPoint {
   date: string;
@@ -19,8 +21,10 @@ export interface WeightChartProps {
 }
 
 export default function WeightChart({ data }: WeightChartProps) {
+  const { t } = useI18n();
+  const { formatWeight, toDisplayWeight } = useUnit();
   if (data.length === 0) {
-    return <p className="py-5 text-center text-sm text-muted">暂无体重记录</p>;
+    return <p className="py-5 text-center text-sm text-muted">{t("noWeightChart")}</p>;
   }
 
   return (
@@ -44,10 +48,13 @@ export default function WeightChart({ data }: WeightChartProps) {
             width={36}
             axisLine={false}
             tickLine={false}
-            tickFormatter={(v: number) => `${v}`}
+            tickFormatter={(v: number) => toDisplayWeight(v).toFixed(1)}
           />
           <Tooltip
-            formatter={(value) => [`${value ?? ""} kg`, "体重"]}
+            formatter={(value) => [
+              typeof value === "number" ? formatWeight(value) : String(value ?? ""),
+              t("weight"),
+            ]}
             contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb" }}
           />
           <Line

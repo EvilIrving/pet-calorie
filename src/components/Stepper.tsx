@@ -1,5 +1,6 @@
 import { Add28Regular, Subtract28Regular } from "@fluentui/react-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useI18n } from "../i18n";
 import { vibrateStep } from "../lib/haptics";
 
 export interface StepperProps {
@@ -55,6 +56,7 @@ export default function Stepper({
   inputMode = "decimal",
   "aria-label": ariaLabel,
 }: StepperProps) {
+  const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(formatValue(value, decimals));
   const holdDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -142,7 +144,7 @@ export default function Stepper({
       <button
         type="button"
         className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#f0f2f5] text-accent transition-transform duration-75 active:scale-[0.92] active:bg-accent active:text-white disabled:opacity-35 touch-manipulation [&_svg]:pointer-events-none"
-        aria-label="减少"
+        aria-label={t("decrease")}
         disabled={atMin}
         onPointerDown={(e) => {
           e.preventDefault();
@@ -164,7 +166,7 @@ export default function Stepper({
             className="no-spin max-w-full border-0 bg-transparent text-center text-[34px] font-bold tracking-tight text-ink outline-none tabular-nums"
             style={{ width: `${ch}ch` }}
             value={draft}
-            aria-label={ariaLabel ?? "数值"}
+            aria-label={ariaLabel ?? t("value")}
             onFocus={() => setEditing(true)}
             onChange={(e) => handleDraftChange(e.target.value)}
             onBlur={commitDraft}
@@ -185,7 +187,7 @@ export default function Stepper({
       <button
         type="button"
         className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#f0f2f5] text-accent transition-transform duration-75 active:scale-[0.92] active:bg-accent active:text-white disabled:opacity-35 touch-manipulation [&_svg]:pointer-events-none"
-        aria-label="增加"
+        aria-label={t("increase")}
         disabled={atMax}
         onPointerDown={(e) => {
           e.preventDefault();

@@ -7,8 +7,10 @@ import {
 } from "@fluentui/react-icons";
 import { useState } from "react";
 import type { WeightLog } from "../db";
+import { useI18n } from "../i18n";
 import { formatShortDate } from "../lib/date";
 import type { WeightSummary } from "../lib/weightLog";
+import { useUnit } from "../unit";
 import WeightChart, { type WeightChartPoint } from "./WeightChart";
 
 export interface WeightTrendCardProps {
@@ -16,14 +18,17 @@ export interface WeightTrendCardProps {
   chartData: WeightChartPoint[];
   summary: WeightSummary | null;
   latestDate: string | null;
+  tip?: string | null;
   onAdd: () => void;
   onEdit: (log: WeightLog) => void;
   onDelete: (id: number) => void;
 }
 
 function DeltaBadge({ deltaKg }: { deltaKg: number }) {
+  const { t } = useI18n();
+  const { formatWeight } = useUnit();
   if (deltaKg === 0) {
-    return <span className="text-xs font-medium text-muted">较上次持平</span>;
+    return <span className="text-xs font-medium text-muted">{t("sameAsPrevious")}</span>;
   }
   const down = deltaKg < 0;
   const Icon = down ? ArrowDown16Filled : ArrowUp16Filled;
@@ -34,7 +39,7 @@ function DeltaBadge({ deltaKg }: { deltaKg: number }) {
       }`}
     >
       <Icon className="size-3.5" aria-hidden />
-      {Math.abs(deltaKg).toFixed(1)} kg
+      {formatWeight(Math.abs(deltaKg))}
     </span>
   );
 }
@@ -44,23 +49,26 @@ export default function WeightTrendCard({
   chartData,
   summary,
   latestDate,
+  tip,
   onAdd,
   onEdit,
   onDelete,
 }: WeightTrendCardProps) {
+  const { t } = useI18n();
+  const { formatWeight, toDisplayWeight, unitLabel } = useUnit();
   const [historyOpen, setHistoryOpen] = useState(false);
 
   return (
     <section className="rounded-card bg-card p-4 shadow-sm">
       <div className="flex items-start justify-between">
-        <h2 className="text-sm font-medium text-muted">体重记录</h2>
+        <h2 className="text-sm font-medium text-muted">{t("weightRecords")}</h2>
         <button
           type="button"
           className="flex min-h-9 items-center gap-1 rounded-full bg-accent px-3 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
           onClick={onAdd}
         >
           <Add20Filled className="size-4" aria-hidden />
-          记录
+          {t("record")}
         </button>
       </div>
 
@@ -68,14 +76,17 @@ export default function WeightTrendCard({
         <>
           <div className="mt-2 flex items-end gap-2">
             <p className="text-3xl font-bold leading-none text-ink tabular-nums">
-              {summary.currentKg.toFixed(1)}
-              <span className="ml-1 text-base font-medium text-muted">kg</span>
+              {toDisplayWeight(summary.currentKg).toFixed(1)}
+              <span className="ml-1 text-base font-medium text-muted">{unitLabel}</span>
             </p>
             {summary.deltaKg !== null ? <DeltaBadge deltaKg={summary.deltaKg} /> : null}
           </div>
           {latestDate ? (
-            <p className="mt-1 text-xs text-muted">最近称重 {formatShortDate(latestDate)}</p>
+            <p className="mt-1 text-xs text-muted">
+              {t("latestWeightDate", { date: formatShortDate(latestDate) })}
+            </p>
           ) : null}
+          {tip ? <p className="mt-1 text-xs font-medium text-accent">{tip}</p> : null}
 
           <div className="mt-3">
             <WeightChart data={chartData} />
@@ -87,7 +98,7 @@ export default function WeightTrendCard({
             aria-expanded={historyOpen}
             onClick={() => setHistoryOpen((o) => !o)}
           >
-            <span>历史记录（{logs.length}）</span>
+            <span>{t("historyCount", { count: logs.length })}</span>
             <ChevronDown20Regular
               className={`size-5 transition-transform ${historyOpen ? "rotate-180" : ""}`}
               aria-hidden
@@ -106,12 +117,12 @@ export default function WeightTrendCard({
                     {formatShortDate(log.date)}
                   </button>
                   <span className="mr-3 text-sm font-medium text-ink tabular-nums">
-                    {log.weightKg.toFixed(1)} kg
+                    {formatWeight(log.weightKg)}
                   </span>
                   <button
                     type="button"
                     className="flex size-9 items-center justify-center rounded-full text-muted touch-manipulation active:bg-surface"
-                    aria-label={`删除 ${formatShortDate(log.date)} 的记录`}
+                    aria-label={t("deleteRecord", { date: formatShortDate(log.date) })}
                     onClick={() => log.id !== undefined && onDelete(log.id)}
                   >
                     <Delete16Regular className="size-4" aria-hidden />
@@ -122,9 +133,7 @@ export default function WeightTrendCard({
           ) : null}
         </>
       ) : (
-        <p className="mt-3 py-4 text-center text-sm text-muted">
-          还没有体重记录，点「记录」开始追踪吧
-        </p>
+        <p className="mt-3 py-4 text-center text-sm text-muted">{t("noWeightRecords")}</p>
       )}
     </section>
   );

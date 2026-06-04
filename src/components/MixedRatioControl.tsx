@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n";
 import Stepper from "./Stepper";
 
 export interface MixedRatioControlProps {
@@ -11,6 +12,7 @@ function toPercent(ratio: number): number {
 }
 
 export default function MixedRatioControl({ dryRatio, onChange }: MixedRatioControlProps) {
+  const { t } = useI18n();
   const dryPercent = toPercent(dryRatio);
   const wetPercent = 100 - dryPercent;
 
@@ -18,8 +20,8 @@ export default function MixedRatioControl({ dryRatio, onChange }: MixedRatioCont
     <section className="rounded-card bg-card p-4 shadow-sm">
       <div className="mb-2 flex items-end justify-between gap-2">
         <div>
-          <p className="text-sm text-muted">干湿热量比例</p>
-          <p className="mt-1 text-xs text-muted">按 kcal 分配，不按克重分配</p>
+          <p className="text-sm text-muted">{t("wetDryRatio")}</p>
+          <p className="mt-1 text-xs text-muted">{t("ratioHint")}</p>
         </div>
         <p className="shrink-0 text-sm font-semibold text-accent tabular-nums">
           {dryPercent}% / {wetPercent}%
@@ -34,11 +36,11 @@ export default function MixedRatioControl({ dryRatio, onChange }: MixedRatioCont
         decimals={0}
         unit="%"
         inputMode="numeric"
-        aria-label="干粮热量占比"
+        aria-label={t("dryEnergyRatio")}
       />
       <div className="mt-2 flex items-center justify-between text-xs text-muted">
-        <span>干粮 {dryPercent}%</span>
-        <span>湿粮 {wetPercent}%</span>
+        <span>{t("dryPercent", { percent: dryPercent })}</span>
+        <span>{t("wetPercent", { percent: wetPercent })}</span>
       </div>
     </section>
   );

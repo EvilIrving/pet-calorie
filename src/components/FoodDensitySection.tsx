@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useI18n } from "../i18n";
 import type { MacroPercents } from "../lib/calculator";
 import type { FeedingMode } from "../lib/feeding";
-import SegmentControl from "./SegmentControl";
 import KcalDensitySheet from "./KcalDensitySheet";
 import MacroStepperForm from "./MacroStepperForm";
+import SegmentControl from "./SegmentControl";
 
 type FoodType = "dry" | "wet";
 type InputMode = "kcal" | "macros";
@@ -45,6 +46,7 @@ export default function FoodDensitySection({
   onWetKcalPerKgChange,
   onMacrosChange,
 }: FoodDensitySectionProps) {
+  const { t } = useI18n();
   const [densityEditing, setDensityEditing] = useState<FoodType | null>(null);
   const editingValue = densityEditing === "dry" ? dryKcalPerKg : wetKcalPerKg;
   const handleDensityChange =
@@ -54,36 +56,36 @@ export default function FoodDensitySection({
     <section className="rounded-card bg-card p-4 shadow-sm">
       {feedingMode === "mixed" ? (
         <>
-          <p className="mb-2 text-sm text-muted">热量密度</p>
+          <p className="mb-2 text-sm text-muted">{t("energyDensity")}</p>
           <div className="flex flex-col gap-2">
             <button
               type="button"
               className="flex min-h-12 w-full items-baseline justify-between rounded-xl border border-line bg-card px-3 py-2.5 touch-manipulation active:bg-surface"
-              aria-label="打开干粮热量密度选择"
+              aria-label={t("openDryDensity")}
               onClick={() => setDensityEditing("dry")}
             >
-              <span className="text-sm font-medium text-muted">干粮</span>
+              <span className="text-sm font-medium text-muted">{t("dryFood")}</span>
               {densityText(dryKcalPerKg)}
             </button>
             <button
               type="button"
               className="flex min-h-12 w-full items-baseline justify-between rounded-xl border border-line bg-card px-3 py-2.5 touch-manipulation active:bg-surface"
-              aria-label="打开湿粮热量密度选择"
+              aria-label={t("openWetDensity")}
               onClick={() => setDensityEditing("wet")}
             >
-              <span className="text-sm font-medium text-muted">湿粮</span>
+              <span className="text-sm font-medium text-muted">{t("wetFood")}</span>
               {densityText(wetKcalPerKg)}
             </button>
           </div>
         </>
       ) : (
         <>
-          <p className="mb-2 text-sm text-muted">热量输入方式</p>
+          <p className="mb-2 text-sm text-muted">{t("energyInputMode")}</p>
           <SegmentControl
-            aria-label="热量输入方式"
+            aria-label={t("energyInputMode")}
             options={[
               { value: "kcal", label: "kcal/kg" },
-              { value: "macros", label: "成分反算" },
+              { value: "macros", label: t("macroEstimate") },
             ]}
             value={inputMode}
             onChange={onInputModeChange}
@@ -93,7 +95,7 @@ export default function FoodDensitySection({
               <button
                 type="button"
                 className="flex min-h-12 w-full items-baseline justify-center rounded-xl border border-line bg-card px-3 py-2.5 text-center touch-manipulation active:bg-surface"
-                aria-label="打开热量密度选择"
+                aria-label={t("openDensity")}
                 onClick={() => setDensityEditing(foodType)}
               >
                 <span className="text-3xl font-bold text-ink tabular-nums">{kcalPerKg}</span>

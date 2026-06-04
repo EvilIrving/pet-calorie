@@ -7,6 +7,7 @@ import WeightLogSheet from "../components/WeightLogSheet";
 import WeightTrendCard from "../components/WeightTrendCard";
 import type { FeedingLog, WeightLog } from "../db";
 import { db } from "../db";
+import { useI18n } from "../i18n";
 import {
   calcDailyGrams,
   calcDietCalorieDeficitRange,
@@ -16,10 +17,17 @@ import {
   calcSafeWeightLossPlan,
 } from "../lib/calculator";
 import { formatShortDate, toLocalDateString } from "../lib/date";
-import { canRecordDry, canRecordWet, summarizeFeeding } from "../lib/feeding";
+import {
+  canRecordDry,
+  canRecordWet,
+  isFoodConfiguredForMode,
+  summarizeFeeding,
+} from "../lib/feeding";
+import { getPlanTips, highestTipForKind, type PlanTip } from "../lib/planTips";
 import { calcDietReferenceWeightKg, summarizeWeightLogs } from "../lib/weightLog";
 import { useCatStore } from "../stores/catStore";
 import { useFoodStore } from "../stores/foodStore";
+import { useUnit } from "../unit";
 
 function getDietWeek(startIso: string | null): number {
   if (!startIso) return 1;
@@ -45,7 +53,13 @@ async function loadFeedingLog(petId: number, date: string): Promise<FeedingLog |
   return (await db.feedingLogs.where("[petId+date]").equals([petId, date]).first()) ?? null;
 }
 
+async function loadFeedingLogs(petId: number): Promise<FeedingLog[]> {
+  return db.feedingLogs.where("petId").equals(petId).reverse().sortBy("date");
+}
+
 export default function DietTab() {
+  const { t } = useI18n();
+  const { formatWeight } = useUnit();
   const activePet = useCatStore((s) => s.activePet);
   const updateCat = useCatStore((s) => s.update);
   const foods = useFoodStore((s) => s.foods);
@@ -54,6 +68,7 @@ export default function DietTab() {
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
   const [feedingSheetOpen, setFeedingSheetOpen] = useState(false);
   const [todayFeeding, setTodayFeeding] = useState<FeedingLog | null>(null);
+  const [feedingLogs, setFeedingLogs] = useState<FeedingLog[]>([]);
 
   const today = toLocalDateString();
   const petId = activePet?.id;
@@ -66,6 +81,7 @@ export default function DietTab() {
   const refreshFeeding = () => {
     if (petId == null) return;
     void loadFeedingLog(petId, today).then(setTodayFeeding);
+    void loadFeedingLogs(petId).then(setFeedingLogs);
   };
 
   useEffect(() => {
@@ -106,6 +122,10 @@ export default function DietTab() {
   const hasDryDensity = !!dryFood && dryFood.kcalPerKg > 0;
   const hasWetDensity = !!wetFood && wetFood.kcalPerKg > 0;
   const feedingMode = activePet?.feedingMode ?? "dry";
+  const hasFoodConfig =
+    feedingMode !== "none" ? isFoodConfiguredForMode(feedingMode, foods) : false;
+  const hasOverweightBcs = (activePet?.bcsScore ?? 0) > 5;
+  const canStartDiet = hasFoodConfig && hasOverweightBcs;
   const recordsDry = canRecordDry(feedingMode);
   const recordsWet = canRecordWet(feedingMode);
   const dryKcalPerKg = dryFood?.kcalPerKg ?? 0;
@@ -127,6 +147,30 @@ export default function DietTab() {
       : null;
 
   const feedingSummary = summarizeFeeding(todayFeeding, dryKcalPerKg, wetKcalPerKg, dailyKcal);
+  const planTips = activePet
+    ? getPlanTips({
+        pet: activePet,
+        weightLogs,
+        feedingLogs,
+        targetKcal: dailyKcal,
+        today,
+      })
+    : [];
+  const planTip = highestTipForKind(planTips, "plan");
+  const feedingTip = highestTipForKind(planTips, "feeding");
+  const weightTip = highestTipForKind(planTips, "weight");
+  const tipText = (tip: PlanTip | null): string | null => {
+    if (!tip) return null;
+    const keyMap: Record<PlanTip["messageKey"], string> = {
+      "feeding.missingToday": "missingFeedingToday",
+      "weight.stale": "planTipWeightStale",
+      "plan.bcsUnknown": "planTipBcsUnknown",
+      "plan.bcsHigh": "planTipBcsHigh",
+      "plan.lossFast": "planTipLossFast",
+      "plan.stalled": "planTipStalled",
+    };
+    return t(keyMap[tip.messageKey]);
+  };
 
   const saveFeedingLog = async (date: string, dryGrams: number | null, wetGrams: number | null) => {
     if (petId == null) return;
@@ -151,6 +195,7 @@ export default function DietTab() {
 
   const startDiet = async () => {
     if (!activePet) return;
+    if (!canStartDiet) return;
     if (!activePet?.dietStartDate) {
       await updateCat({
         dietStartDate: new Date().toISOString(),
@@ -199,27 +244,35 @@ export default function DietTab() {
   };
 
   if (!activePet) {
-    return <p className="py-8 text-center text-sm text-muted">加载中…</p>;
+    return <p className="py-8 text-center text-sm text-muted">{t("loading")}</p>;
   }
 
   return (
     <div className="flex flex-col gap-3">
       <section className="rounded-card bg-card p-4 shadow-sm">
         {!activePet.dietStartDate ? (
-          <button
-            type="button"
-            className="mb-3 w-full min-h-11 rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white touch-manipulation active:bg-accent-press"
-            onClick={startDiet}
-          >
-            开始减肥计划
-          </button>
+          <div className="mb-3">
+            <button
+              type="button"
+              className="w-full min-h-11 rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white touch-manipulation active:bg-accent-press disabled:bg-line disabled:text-muted"
+              disabled={!canStartDiet}
+              onClick={startDiet}
+            >
+              {t("startDiet")}
+            </button>
+            {!canStartDiet ? (
+              <p className="mt-2 text-xs font-medium text-muted">{t("startDietNeedsFoodAndBcs")}</p>
+            ) : null}
+          </div>
         ) : null}
 
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold text-ink">第 {week} 周目标</p>
+          <p className="text-sm font-semibold text-ink">{t("weekTarget", { week })}</p>
           <p className="text-xs font-medium text-muted">
-            固定速率 {(safePlan.rateMin * 100).toFixed(1)}–{(safePlan.rateMax * 100).toFixed(1)}
-            %/周
+            {t("fixedRate", {
+              min: (safePlan.rateMin * 100).toFixed(1),
+              max: (safePlan.rateMax * 100).toFixed(1),
+            })}
           </p>
         </div>
 
@@ -233,17 +286,27 @@ export default function DietTab() {
         <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted">
           <span className="flex items-center gap-1">
             <Target24Regular className="size-4 text-accent" aria-hidden />
-            {formatKcalRange(dailyKcalRange.min, dailyKcalRange.max)} kcal/天
+            {t("kcalPerDay", {
+              kcal: formatKcalRange(dailyKcalRange.min, dailyKcalRange.max),
+            })}
           </span>
           <span className="flex items-center gap-1">
             <Scales24Regular className="size-4 text-accent" aria-hidden />
-            {safePlan.targetMinKg.toFixed(2)}–{safePlan.targetMaxKg.toFixed(2)} kg
+            {formatWeight(safePlan.targetMinKg, 2)}–{formatWeight(safePlan.targetMaxKg, 2)}
           </span>
           <span className="flex items-center gap-1">
             <DataTrending24Regular className="size-4 text-accent" aria-hidden />
-            MER {Math.round(mer)} · 缺口 {formatKcalRange(deficitRange.min, deficitRange.max)}
+            {t("merDeficit", {
+              mer: Math.round(mer),
+              deficit: formatKcalRange(deficitRange.min, deficitRange.max),
+            })}
           </span>
         </div>
+        {planTip ? (
+          <p className="mt-3 rounded-lg bg-surface px-3 py-2 text-xs font-medium text-accent">
+            {tipText(planTip)}
+          </p>
+        ) : null}
       </section>
 
       <FeedingCard
@@ -255,6 +318,7 @@ export default function DietTab() {
         mixedDryRatio={feedingMode === "mixed" ? mixedDryRatio : null}
         todayLog={todayFeeding}
         summary={feedingSummary}
+        tip={tipText(feedingTip)}
         onRecord={() => setFeedingSheetOpen(true)}
       />
 
@@ -263,6 +327,7 @@ export default function DietTab() {
         chartData={chartData}
         summary={summary}
         latestDate={latestDate}
+        tip={tipText(weightTip)}
         onAdd={openAddSheet}
         onEdit={openEditSheet}
         onDelete={(id) => void deleteWeightLog(id)}

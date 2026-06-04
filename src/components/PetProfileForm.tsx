@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import type { ActivityLevel, LifeStage, Species } from "../config/nutrition";
-import {
-  activityLabelsBySpecies,
-  defaultPetName,
-  speciesLabels,
-  weightRange,
-} from "../config/nutrition";
+import { activityLabelsBySpecies, defaultPetName, weightRange } from "../config/nutrition";
 import type { CatProfile } from "../db";
+import { useI18n } from "../i18n";
 import { clampAgeMonths, lifeStageToMonths, monthsToLifeStage } from "../lib/age";
 import AgeProgressBar from "./AgeProgressBar";
+import BcsAssessment from "./BcsAssessment";
 import DecimalWheelPicker from "./DecimalWheelPicker";
 import SegmentControl from "./SegmentControl";
 
@@ -17,6 +14,8 @@ export interface PetProfileFormValues {
   name: string;
   weightKg: number;
   idealWeightKg: number | null;
+  bcsScore: number | null;
+  bcsAssessedAt: string | null;
   lifeStage: LifeStage;
   neutered: boolean;
   activity: ActivityLevel;
@@ -41,12 +40,14 @@ export default function PetProfileForm({
   submitLabel,
   onSubmit,
   onDelete,
-  deleteLabel = "删除宠物及全部数据",
+  deleteLabel,
 }: PetProfileFormProps) {
+  const { t } = useI18n();
   const [species, setSpecies] = useState<Species>(initial.species);
   const [name, setName] = useState(initial.name);
   const [weightKg, setWeightKg] = useState(initial.weightKg);
   const [idealWeightKg, setIdealWeightKg] = useState(initial.idealWeightKg ?? initial.weightKg);
+  const [bcsScore, setBcsScore] = useState<number | null>(initial.bcsScore);
   const [ageMonths, setAgeMonths] = useState(() =>
     lifeStageToMonths(initial.species, initial.lifeStage),
   );
@@ -75,6 +76,13 @@ export default function PetProfileForm({
       name: trimmed.length > 0 ? trimmed : defaultPetName[species],
       weightKg: clampWeight(species, weightKg),
       idealWeightKg: clampWeight(species, idealWeightKg),
+      bcsScore,
+      bcsAssessedAt:
+        bcsScore === null
+          ? null
+          : bcsScore === initial.bcsScore && initial.bcsAssessedAt
+            ? initial.bcsAssessedAt
+            : new Date().toISOString(),
       lifeStage,
       neutered,
       activity,
@@ -90,12 +98,12 @@ export default function PetProfileForm({
       }}
     >
       <div>
-        <p className="mb-2 text-sm text-muted">物种</p>
+        <p className="mb-2 text-sm text-muted">{t("species")}</p>
         <SegmentControl
-          aria-label="物种"
-          options={(Object.entries(speciesLabels) as [Species, string][]).map(([value, label]) => ({
+          aria-label={t("species")}
+          options={(["cat", "dog"] as Species[]).map((value) => ({
             value,
-            label,
+            label: t(value),
           }))}
           value={species}
           onChange={handleSpeciesChange}
@@ -104,7 +112,7 @@ export default function PetProfileForm({
 
       <div>
         <label htmlFor="pet-name" className="mb-1.5 block text-sm text-muted">
-          名字
+          {t("name")}
         </label>
         <input
           id="pet-name"
@@ -118,37 +126,39 @@ export default function PetProfileForm({
       </div>
 
       <div>
-        <p className="mb-1.5 text-sm text-muted">体重</p>
+        <p className="mb-1.5 text-sm text-muted">{t("weight")}</p>
         <DecimalWheelPicker
           species={species}
           value={weightKg}
           onChange={setWeightKg}
-          aria-label="体重尺子"
+          aria-label={t("weight")}
         />
       </div>
 
       <div>
-        <p className="mb-1.5 text-sm text-muted">目标体重</p>
+        <p className="mb-1.5 text-sm text-muted">{t("targetWeight")}</p>
         <DecimalWheelPicker
           species={species}
           value={idealWeightKg}
           onChange={setIdealWeightKg}
-          aria-label="目标体重尺子"
+          aria-label={t("targetWeight")}
         />
       </div>
 
+      <BcsAssessment species={species} value={bcsScore} onChange={setBcsScore} />
+
       <div>
-        <p className="mb-2 text-sm text-muted">年龄段</p>
+        <p className="mb-2 text-sm text-muted">{t("ageStage")}</p>
         <AgeProgressBar species={species} ageMonths={ageMonths} onAgeMonthsChange={setAgeMonths} />
       </div>
 
       <div>
-        <p className="mb-2 text-sm text-muted">是否绝育</p>
+        <p className="mb-2 text-sm text-muted">{t("neutered")}</p>
         <SegmentControl
-          aria-label="是否绝育"
+          aria-label={t("neutered")}
           options={[
-            { value: "yes", label: "是" },
-            { value: "no", label: "否" },
+            { value: "yes", label: t("yes") },
+            { value: "no", label: t("no") },
           ]}
           value={neutered ? "yes" : "no"}
           onChange={(v) => setNeutered(v === "yes")}
@@ -156,13 +166,20 @@ export default function PetProfileForm({
       </div>
 
       <div>
-        <p className="mb-2 text-sm text-muted">活动量</p>
+        <p className="mb-2 text-sm text-muted">{t("activity")}</p>
         <SegmentControl
-          aria-label="活动量"
+          aria-label={t("activity")}
           compact
-          options={(
-            Object.entries(activityLabelsBySpecies[species]) as [ActivityLevel, string][]
-          ).map(([value, label]) => ({ value, label }))}
+          options={(Object.keys(activityLabelsBySpecies[species]) as ActivityLevel[]).map(
+            (value) => ({
+              value,
+              label: t(
+                `${value}${species === "cat" ? "Cat" : "Dog"}Activity`.replace(/^./, (c) =>
+                  c.toLowerCase(),
+                ),
+              ),
+            }),
+          )}
           value={activity}
           onChange={setActivity}
         />
@@ -181,7 +198,7 @@ export default function PetProfileForm({
           className="min-h-11 w-full rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium text-muted touch-manipulation active:bg-surface"
           onClick={() => void onDelete()}
         >
-          {deleteLabel}
+          {deleteLabel ?? t("deletePetAndData")}
         </button>
       ) : null}
     </form>

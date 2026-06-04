@@ -1,10 +1,14 @@
+import { Navigation24Regular } from "@fluentui/react-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
+import AboutSheet from "./components/AboutSheet";
+import AppSettingsSheet from "./components/AppSettingsSheet";
 import BottomTabs, { type AppTab } from "./components/BottomTabs";
 import CatInfoBar from "./components/CatInfoBar";
 import PetSettingsSheet from "./components/PetSettingsSheet";
 import PetSwitcher from "./components/PetSwitcher";
 import type { CatProfile } from "./db";
 import { resetAllAppData } from "./db";
+import { useI18n } from "./i18n";
 import { type FeedingMode, isFoodConfiguredForMode } from "./lib/feeding";
 import CalcTab from "./pages/CalcTab";
 import DietTab from "./pages/DietTab";
@@ -17,15 +21,18 @@ export default function App() {
   const [tabReady, setTabReady] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [editingPet, setEditingPet] = useState<CatProfile | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const resetClicks = useRef(0);
   const resetTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const { t } = useI18n();
 
   const handleResetClick = useCallback(() => {
     resetClicks.current += 1;
     if (resetTimer.current) clearTimeout(resetTimer.current);
     if (resetClicks.current >= 3) {
       resetClicks.current = 0;
-      const confirmed = window.confirm("确定清空全部数据？此操作不可恢复。");
+      const confirmed = window.confirm(t("confirmReset"));
       if (confirmed) {
         void resetAllAppData().then(() => window.location.reload());
       }
@@ -84,9 +91,7 @@ export default function App() {
 
   const handleDeletePet = useCallback(
     (petId: number) => {
-      const confirmed = window.confirm(
-        "将删除该宠物及其全部数据（常用粮、体重与喂食记录等），且无法恢复。确定继续？",
-      );
+      const confirmed = window.confirm(t("confirmDeletePet"));
       if (!confirmed) return;
       void deletePet(petId);
     },
@@ -120,13 +125,25 @@ export default function App() {
   return (
     <div className="mx-auto min-h-dvh max-w-md pb-24">
       <header className="px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1">
-        <h1
-          className="text-base font-semibold text-ink select-none"
-          onClick={handleResetClick}
-          onKeyDown={() => {}}
-        >
-          宠物热量与减肥
-        </h1>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <h1
+              className="flex min-h-11 min-w-0 items-center text-base font-semibold text-ink select-none"
+              onClick={handleResetClick}
+              onKeyDown={() => {}}
+            >
+              {t("appTitle")}
+            </h1>
+            <button
+              type="button"
+              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-surface text-muted touch-manipulation active:bg-line/40"
+              aria-label={t("openSettings")}
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Navigation24Regular className="size-6" aria-hidden />
+            </button>
+          </div>
+        </div>
       </header>
 
       {activePet ? (
@@ -142,7 +159,7 @@ export default function App() {
 
       <main className="px-3 pb-3">
         {!catLoaded || !tabReady ? (
-          <p className="py-10 text-center text-sm text-muted">加载中…</p>
+          <p className="py-10 text-center text-sm text-muted">{t("loading")}</p>
         ) : tab === "calc" ? (
           <CalcTab />
         ) : (
@@ -176,6 +193,15 @@ export default function App() {
           onDelete={handleDeleteEditingPet}
         />
       ) : null}
+
+      {settingsOpen ? (
+        <AppSettingsSheet
+          onClose={() => setSettingsOpen(false)}
+          onOpenAbout={() => setAboutOpen(true)}
+        />
+      ) : null}
+
+      {aboutOpen ? <AboutSheet onClose={() => setAboutOpen(false)} /> : null}
     </div>
   );
 }

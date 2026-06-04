@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { type AgeBand, petAgeConfig, type Species } from "../config/nutrition";
+import { useI18n } from "../i18n";
 import {
   clampAgeMonths,
-  formatPetAge,
   getAgeBandSegmentWeights,
   monthsToAgeBand,
   monthsToProgress,
@@ -21,6 +21,7 @@ export default function AgeProgressBar({
   ageMonths,
   onAgeMonthsChange,
 }: AgeProgressBarProps) {
+  const { t } = useI18n();
   const trackRef = useRef<HTMLDivElement>(null);
   const lastBandRef = useRef<AgeBand>(monthsToAgeBand(species, ageMonths));
 
@@ -63,24 +64,34 @@ export default function AgeProgressBar({
   const thumbPercent = `${progress * 100}%`;
   const boundary1 = segmentWeights[0] * 100;
   const boundary2 = (segmentWeights[0] + segmentWeights[1]) * 100;
+  const bandLabel = t(
+    band === "kitten" ? "kittenBand" : band === "adult" ? "adultBand" : "seniorBand",
+  );
+  const ageText = (() => {
+    if (ageMonths < 12) return t("ageMonths", { months: ageMonths });
+    const years = Math.floor(ageMonths / 12);
+    const months = ageMonths % 12;
+    if (months === 0) return t("ageYears", { years });
+    return t("ageYearsMonths", { years, months });
+  })();
 
   return (
     <div className="flex flex-col gap-2">
       <div
         role="slider"
-        aria-label="年龄段"
+        aria-label={t("ageStage")}
         aria-valuemin={cfg.minMonths}
         aria-valuemax={cfg.maxMonths}
         aria-valuenow={ageMonths}
-        aria-valuetext={`${cfg.bandLabels[band]}，${formatPetAge(ageMonths)}`}
+        aria-valuetext={`${bandLabel}, ${ageText}`}
         tabIndex={0}
         className="relative touch-none pt-6 pb-3 outline-none focus-visible:ring-2 focus-visible:ring-accent/30 rounded-xl"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
       >
-        <p className="absolute top-0 right-0 text-sm text-muted">{cfg.bandLabels[band]}</p>
+        <p className="absolute top-0 right-0 text-sm text-muted">{bandLabel}</p>
         <p className="absolute top-0 left-1/2 -translate-x-1/2 text-base font-semibold text-ink tabular-nums">
-          {formatPetAge(ageMonths)}
+          {ageText}
         </p>
 
         <div ref={trackRef} className="relative flex h-6 items-center">

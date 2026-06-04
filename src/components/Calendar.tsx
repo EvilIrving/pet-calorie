@@ -1,10 +1,19 @@
 import { ChevronLeft24Regular, ChevronRight24Regular } from "@fluentui/react-icons";
 import { useState } from "react";
+import { useI18n } from "../i18n";
 import { buildMonthMatrix, shiftMonth } from "../lib/calendar";
 import { toLocalDateString } from "../lib/date";
 import { vibrateStep } from "../lib/haptics";
 
-const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"];
+const WEEKDAY_KEYS = [
+  "weekdayMon",
+  "weekdayTue",
+  "weekdayWed",
+  "weekdayThu",
+  "weekdayFri",
+  "weekdaySat",
+  "weekdaySun",
+];
 
 export interface CalendarProps {
   value: string;
@@ -18,8 +27,9 @@ export default function Calendar({
   value,
   onChange,
   max = toLocalDateString(),
-  "aria-label": ariaLabel = "选择日期",
+  "aria-label": ariaLabel,
 }: CalendarProps) {
+  const { t } = useI18n();
   const today = toLocalDateString();
   const [view, setView] = useState(() => {
     const [y, m] = value.split("-").map(Number);
@@ -38,23 +48,23 @@ export default function Calendar({
   };
 
   return (
-    <div role="group" aria-label={ariaLabel} className="select-none">
+    <div role="group" aria-label={ariaLabel ?? t("selectDate")} className="select-none">
       <div className="mb-1.5 flex items-center justify-between">
         <button
           type="button"
           className="flex size-11 items-center justify-center rounded-full text-ink touch-manipulation active:bg-surface"
-          aria-label="上个月"
+          aria-label={t("previousMonth")}
           onClick={() => goMonth(-1)}
         >
           <ChevronLeft24Regular className="size-5" aria-hidden />
         </button>
         <span className="text-base font-semibold text-ink tabular-nums">
-          {view.year} 年 {view.month} 月
+          {t("monthYear", { year: view.year, month: view.month })}
         </span>
         <button
           type="button"
           className="flex size-11 items-center justify-center rounded-full text-ink touch-manipulation active:bg-surface disabled:opacity-30"
-          aria-label="下个月"
+          aria-label={t("nextMonth")}
           disabled={!canGoNext}
           onClick={() => goMonth(1)}
         >
@@ -63,9 +73,9 @@ export default function Calendar({
       </div>
 
       <div className="grid grid-cols-7 text-center text-xs text-muted">
-        {WEEKDAYS.map((w) => (
-          <span key={w} className="py-0.5">
-            {w}
+        {WEEKDAY_KEYS.map((key) => (
+          <span key={key} className="py-0.5">
+            {t(key)}
           </span>
         ))}
       </div>

@@ -3,6 +3,7 @@ import FoodDensitySection from "../components/FoodDensitySection";
 import MixedRatioControl from "../components/MixedRatioControl";
 import SegmentControl from "../components/SegmentControl";
 import { defaultDryKcalPerKg, defaultWetKcalPerKg } from "../config/nutrition";
+import { useI18n } from "../i18n";
 import {
   calcDailyGrams,
   calcKcalFromMacros,
@@ -28,6 +29,7 @@ const defaultMacros: MacroPercents = {
 };
 
 export default function CalcTab() {
+  const { t } = useI18n();
   const activePet = useCatStore((s) => s.activePet);
   const updateCat = useCatStore((s) => s.update);
   const foods = useFoodStore((s) => s.foods);
@@ -92,13 +94,13 @@ export default function CalcTab() {
     try {
       if (feedingMode === "mixed") {
         await saveFood(activePet.id, {
-          name: `干粮 ${Math.round(dryKcalPerKg)}`,
+          name: `${t("dryFood")} ${Math.round(dryKcalPerKg)}`,
           foodType: "dry",
           kcalPerKg: dryKcalPerKg,
           macros: null,
         });
         await saveFood(activePet.id, {
-          name: `湿粮 ${Math.round(wetKcalPerKg)}`,
+          name: `${t("wetFood")} ${Math.round(wetKcalPerKg)}`,
           foodType: "wet",
           kcalPerKg: wetKcalPerKg,
           macros: null,
@@ -107,7 +109,7 @@ export default function CalcTab() {
         return;
       }
       await saveFood(activePet.id, {
-        name: `${foodType === "dry" ? "干粮" : "湿粮"} ${Math.round(effectiveKcalPerKg)}`,
+        name: `${foodType === "dry" ? t("dryFood") : t("wetFood")} ${Math.round(effectiveKcalPerKg)}`,
         foodType,
         kcalPerKg: effectiveKcalPerKg,
         macros: inputMode === "macros" ? macros : null,
@@ -119,31 +121,31 @@ export default function CalcTab() {
   };
 
   if (!activePet) {
-    return <p className="py-8 text-center text-sm text-muted">加载中…</p>;
+    return <p className="py-8 text-center text-sm text-muted">{t("loading")}</p>;
   }
 
-  const savedFoodLabel = activePet.species === "dog" ? "狗粮" : "猫粮";
+  const savedFoodLabel = activePet.species === "dog" ? t("dogFood") : t("catFood");
   const saveButtonLabel =
     saveFoodStatus === "saving"
-      ? "保存中…"
+      ? t("saving")
       : saveFoodStatus === "saved"
-        ? "已保存"
+        ? t("saved")
         : saveFoodStatus === "error"
-          ? "保存失败，请重试"
+          ? t("saveFailed")
           : feedingMode === "mixed"
-            ? "保存干湿配置"
-            : `保存为常用${savedFoodLabel}`;
+            ? t("saveMixedConfig")
+            : t("saveCommonFood", { food: savedFoodLabel });
 
   return (
     <div className="flex flex-col gap-3">
       <section className="rounded-card bg-card p-4 shadow-sm">
-        <p className="mb-2 text-sm text-muted">喂食模式</p>
+        <p className="mb-2 text-sm text-muted">{t("feedingMode")}</p>
         <SegmentControl
-          aria-label="喂食模式"
+          aria-label={t("feedingMode")}
           options={[
-            { value: "dry", label: "干粮" },
-            { value: "wet", label: "湿粮" },
-            { value: "mixed", label: "干湿混合" },
+            { value: "dry", label: t("dry") },
+            { value: "wet", label: t("wet") },
+            { value: "mixed", label: t("mixed") },
           ]}
           value={feedingMode}
           onChange={handleFeedingModeChange}
@@ -172,19 +174,22 @@ export default function CalcTab() {
       ) : null}
 
       <section className="rounded-card bg-accent/10 p-4 text-center">
-        <p className="text-sm text-muted">每日可喂</p>
+        <p className="text-sm text-muted">{t("dailyAllowance")}</p>
         {feedingMode === "mixed" ? (
           <div className="mt-1.5 flex flex-col gap-0.5 text-left">
             <p className="flex justify-between text-base text-ink">
-              <span className="text-muted">干粮</span>
+              <span className="text-muted">{t("dryFood")}</span>
               <span className="font-semibold tabular-nums">{Math.round(mixedPlan.dryGrams)} g</span>
             </p>
             <p className="flex justify-between text-base text-ink">
-              <span className="text-muted">湿粮</span>
+              <span className="text-muted">{t("wetFood")}</span>
               <span className="font-semibold tabular-nums">{Math.round(mixedPlan.wetGrams)} g</span>
             </p>
             <p className="mt-1 text-xs text-muted">
-              热量分配 {Math.round(mixedPlan.dryKcal)} kcal / {Math.round(mixedPlan.wetKcal)} kcal
+              {t("calorieSplit", {
+                dry: Math.round(mixedPlan.dryKcal),
+                wet: Math.round(mixedPlan.wetKcal),
+              })}
             </p>
           </div>
         ) : (
@@ -192,7 +197,9 @@ export default function CalcTab() {
             {Math.round(dailyGrams)} g
           </p>
         )}
-        <p className="mt-1.5 text-xs text-muted">维持热量 {Math.round(dailyKcal)} kcal/天</p>
+        <p className="mt-1.5 text-xs text-muted">
+          {t("maintenanceKcal", { kcal: Math.round(dailyKcal) })}
+        </p>
       </section>
 
       <button

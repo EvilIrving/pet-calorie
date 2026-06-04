@@ -1,4 +1,5 @@
 import { Calculator24Regular, Target24Regular } from "@fluentui/react-icons";
+import { useI18n } from "../i18n";
 
 export type AppTab = "calc" | "diet";
 
@@ -7,16 +8,17 @@ export interface BottomTabsProps {
   onChange: (tab: AppTab) => void;
 }
 
-const tabs: { id: AppTab; label: string; Icon: typeof Calculator24Regular }[] = [
-  { id: "calc", label: "热量计算", Icon: Calculator24Regular },
-  { id: "diet", label: "减肥计划", Icon: Target24Regular },
-];
-
 export default function BottomTabs({ active, onChange }: BottomTabsProps) {
+  const { t } = useI18n();
+  const tabs: { id: AppTab; label: string; Icon: typeof Calculator24Regular }[] = [
+    { id: "calc", label: t("tabCalc"), Icon: Calculator24Regular },
+    { id: "diet", label: t("tabDiet"), Icon: Target24Regular },
+  ];
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-      aria-label="主导航"
+      aria-label={t("navMain")}
     >
       <div className="flex w-full max-w-md gap-1 rounded-full border border-line/80 bg-card/80 p-1 shadow-lg backdrop-blur-xl">
         {tabs.map(({ id, label, Icon }) => {

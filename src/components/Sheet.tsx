@@ -1,5 +1,6 @@
 import { Dismiss24Regular } from "@fluentui/react-icons";
 import type { ReactNode } from "react";
+import { useI18n } from "../i18n";
 
 export interface SheetProps {
   title: string;
@@ -18,12 +19,13 @@ export default function Sheet({
   children,
   footer,
 }: SheetProps) {
+  const { t } = useI18n();
   return (
     <div className="fixed inset-0 z-[60] flex flex-col justify-end" role="presentation">
       <button
         type="button"
         className="absolute inset-0 bg-ink/30 backdrop-blur-sm"
-        aria-label="关闭"
+        aria-label={t("close")}
         onClick={onClose}
       />
       <div
@@ -40,7 +42,7 @@ export default function Sheet({
           <button
             type="button"
             className="flex min-h-11 min-w-11 items-center justify-center rounded-full touch-manipulation active:bg-surface"
-            aria-label="关闭"
+            aria-label={t("close")}
             onClick={onClose}
           >
             <Dismiss24Regular className="size-6 text-muted" aria-hidden />

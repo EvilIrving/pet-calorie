@@ -1,5 +1,6 @@
 import { Add20Filled, BowlSalad24Regular } from "@fluentui/react-icons";
 import type { FeedingLog } from "../db";
+import { useI18n } from "../i18n";
 import { canRecordDry, canRecordWet, type FeedingMode, type FeedingSummary } from "../lib/feeding";
 
 export interface FeedingCardProps {
@@ -11,11 +12,12 @@ export interface FeedingCardProps {
   mixedDryRatio: number | null;
   todayLog: FeedingLog | null;
   summary: FeedingSummary | null;
+  tip?: string | null;
   onRecord: () => void;
 }
 
-function gramsText(grams: number | null): string {
-  return grams !== null ? `${grams} g` : "— （未配置）";
+function gramsText(grams: number | null, notConfigured: string): string {
+  return grams !== null ? `${grams} g` : `— (${notConfigured})`;
 }
 
 function FoodRow({ label, value }: { label: string; value: string }) {
@@ -28,9 +30,15 @@ function FoodRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function deltaText(deltaKcal: number): string {
-  if (deltaKcal === 0) return "与计划持平";
-  return `较计划 ${deltaKcal > 0 ? "+" : "−"}${Math.abs(deltaKcal)} kcal`;
+function deltaText(
+  deltaKcal: number,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  if (deltaKcal === 0) return t("sameAsPlan");
+  return t("comparedPlan", {
+    sign: deltaKcal > 0 ? "+" : "−",
+    kcal: Math.abs(deltaKcal),
+  });
 }
 
 export default function FeedingCard({
@@ -42,8 +50,10 @@ export default function FeedingCard({
   mixedDryRatio,
   todayLog,
   summary,
+  tip,
   onRecord,
 }: FeedingCardProps) {
+  const { t } = useI18n();
   const hasDry = canRecordDry(mode);
   const hasWet = canRecordWet(mode);
   const canRecord =
@@ -55,11 +65,13 @@ export default function FeedingCard({
     <section className="rounded-card bg-card p-4 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-sm font-medium text-muted">今日建议</h2>
+          <h2 className="text-sm font-medium text-muted">{t("dailySuggestion")}</h2>
           {mixedDryRatio !== null ? (
             <p className="mt-1 text-xs text-muted">
-              热量比例 干粮 {Math.round(mixedDryRatio * 100)}% · 湿粮{" "}
-              {Math.round((1 - mixedDryRatio) * 100)}%
+              {t("calorieRatio", {
+                dry: Math.round(mixedDryRatio * 100),
+                wet: Math.round((1 - mixedDryRatio) * 100),
+              })}
             </p>
           ) : null}
         </div>
@@ -70,7 +82,7 @@ export default function FeedingCard({
             onClick={onRecord}
           >
             <Add20Filled className="size-4" aria-hidden />
-            记录实际
+            {t("recordActual")}
           </button>
         ) : null}
       </div>
@@ -78,43 +90,51 @@ export default function FeedingCard({
       <div className="mt-2 flex flex-col gap-1.5">
         {hasDry ? (
           <FoodRow
-            label={mode === "mixed" ? "干粮参考" : "干粮"}
-            value={gramsText(suggestedDryGrams)}
+            label={mode === "mixed" ? t("dryReference") : t("dryFood")}
+            value={gramsText(suggestedDryGrams, t("notConfigured"))}
           />
         ) : null}
         {hasWet ? (
           <FoodRow
-            label={mode === "mixed" ? "湿粮参考" : "湿粮"}
-            value={gramsText(suggestedWetGrams)}
+            label={mode === "mixed" ? t("wetReference") : t("wetFood")}
+            value={gramsText(suggestedWetGrams, t("notConfigured"))}
           />
         ) : null}
       </div>
 
       {!canRecord ? (
-        <p className="mt-3 py-3 text-center text-sm text-muted">
-          先在「热量计算」保存当前模式需要的热量密度
-        </p>
+        <p className="mt-3 py-3 text-center text-sm text-muted">{t("saveDensityFirst")}</p>
       ) : (
         <>
           <div className="my-3 h-px bg-line/60" />
-          <h3 className="text-sm font-medium text-muted">今日实际</h3>
+          <h3 className="text-sm font-medium text-muted">{t("actualToday")}</h3>
           {todayLog && summary ? (
             <div className="mt-2 flex flex-col gap-1.5">
-              {hasDry ? <FoodRow label="干粮" value={gramsText(todayLog.dryGrams)} /> : null}
-              {hasWet ? <FoodRow label="湿粮" value={gramsText(todayLog.wetGrams)} /> : null}
+              {hasDry ? (
+                <FoodRow
+                  label={t("dryFood")}
+                  value={gramsText(todayLog.dryGrams, t("notConfigured"))}
+                />
+              ) : null}
+              {hasWet ? (
+                <FoodRow
+                  label={t("wetFood")}
+                  value={gramsText(todayLog.wetGrams, t("notConfigured"))}
+                />
+              ) : null}
               <div className="mt-1 flex items-baseline justify-between">
                 <p className="text-xl font-bold leading-none text-ink tabular-nums">
                   {summary.actualKcal}
                   <span className="ml-1 text-base font-medium text-muted">kcal</span>
                 </p>
                 <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent">
-                  {deltaText(summary.deltaKcal)}
+                  {deltaText(summary.deltaKcal, t)}
                 </span>
               </div>
             </div>
           ) : (
             <p className="mt-2 py-3 text-center text-sm text-muted">
-              还没记今天喂了多少，点「记录实际」填一笔
+              {tip ?? t("missingFeedingToday")}
             </p>
           )}
         </>

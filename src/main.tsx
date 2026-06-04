@@ -4,6 +4,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { initDb } from "./db";
+import { I18nProvider } from "./i18n";
+import { UnitProvider } from "./unit";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,7 +30,11 @@ async function bootstrap() {
   createRoot(root).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <App />
+        <I18nProvider>
+          <UnitProvider>
+            <App />
+          </UnitProvider>
+        </I18nProvider>
       </QueryClientProvider>
     </StrictMode>,
   );

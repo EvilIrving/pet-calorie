@@ -15,6 +15,8 @@ export interface CatProfile {
   name: string;
   weightKg: number;
   idealWeightKg: number | null;
+  bcsScore: number | null;
+  bcsAssessedAt: string | null;
   lifeStage: LifeStage;
   neutered: boolean;
   activity: ActivityLevel;
@@ -73,6 +75,23 @@ class CatDatabase extends Dexie {
       weightLogs: "++id, date, petId",
       feedingLogs: "++id, petId, &[petId+date]",
     });
+
+    this.version(3)
+      .stores({
+        cat: "++id",
+        foods: "++id, petId, foodType, createdAt",
+        weightLogs: "++id, date, petId",
+        feedingLogs: "++id, petId, &[petId+date]",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("cat")
+          .toCollection()
+          .modify((cat) => {
+            cat.bcsScore ??= null;
+            cat.bcsAssessedAt ??= null;
+          });
+      });
   }
 }
 
@@ -90,28 +109,37 @@ export async function initDb(): Promise<void> {
 
 /** 获取所有宠物列表（按 id 排序） */
 export async function getAllCats(): Promise<CatProfile[]> {
-  return db.cat.orderBy("id").toArray();
+  const cats = await db.cat.orderBy("id").toArray();
+  return Promise.all(cats.map(normalizeCatProfile));
 }
 
 /** 获取或创建默认宠物（App 首次启动时使用） */
 export async function getOrCreateCat(): Promise<CatProfile> {
   const existing = await db.cat.orderBy("id").first();
   if (existing) {
-    const normalized: CatProfile = {
-      ...existing,
-      idealWeightKg: existing.idealWeightKg ?? null,
-      dietStartWeightKg: existing.dietStartWeightKg ?? null,
-    };
-    if (
-      normalized.idealWeightKg !== existing.idealWeightKg ||
-      normalized.dietStartWeightKg !== existing.dietStartWeightKg
-    ) {
-      await db.cat.put(normalized);
-    }
-    return normalized;
+    return normalizeCatProfile(existing);
   }
 
   return createDefaultCat();
+}
+
+async function normalizeCatProfile(cat: CatProfile): Promise<CatProfile> {
+  const normalized: CatProfile = {
+    ...cat,
+    idealWeightKg: cat.idealWeightKg ?? null,
+    bcsScore: cat.bcsScore ?? null,
+    bcsAssessedAt: cat.bcsAssessedAt ?? null,
+    dietStartWeightKg: cat.dietStartWeightKg ?? null,
+  };
+  if (
+    normalized.idealWeightKg !== cat.idealWeightKg ||
+    normalized.bcsScore !== cat.bcsScore ||
+    normalized.bcsAssessedAt !== cat.bcsAssessedAt ||
+    normalized.dietStartWeightKg !== cat.dietStartWeightKg
+  ) {
+    await db.cat.put(normalized);
+  }
+  return normalized;
 }
 
 /** 创建默认宠物档案并返回 */
@@ -123,6 +151,8 @@ export async function createDefaultCat(): Promise<CatProfile> {
     name: defaultPetName[species],
     weightKg: weightRange[species].defaultKg,
     idealWeightKg: weightRange[species].defaultKg,
+    bcsScore: null,
+    bcsAssessedAt: null,
     lifeStage: "adult_neutered",
     neutered: true,
     activity: "low",

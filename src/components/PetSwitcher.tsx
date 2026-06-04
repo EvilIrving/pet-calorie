@@ -8,6 +8,8 @@ import {
 } from "@fluentui/react-icons";
 import type { Species } from "../config/nutrition";
 import type { CatProfile } from "../db";
+import { useI18n } from "../i18n";
+import { useUnit } from "../unit";
 
 export interface PetSwitcherProps {
   cats: CatProfile[];
@@ -33,6 +35,8 @@ export default function PetSwitcher({
   onDelete,
   onClose,
 }: PetSwitcherProps) {
+  const { t } = useI18n();
+  const { formatWeight } = useUnit();
   const canDelete = cats.length > 1;
 
   return (
@@ -40,14 +44,14 @@ export default function PetSwitcher({
       className="fixed inset-0 z-[70] flex flex-col bg-[#f5f6f8]/95 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
-      aria-label="我的宠物"
+      aria-label={t("myPets")}
     >
       <header className="flex items-center justify-between px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1">
-        <h2 className="text-base font-semibold text-ink">我的宠物</h2>
+        <h2 className="text-base font-semibold text-ink">{t("myPets")}</h2>
         <button
           type="button"
           className="flex min-h-11 min-w-11 items-center justify-center rounded-full touch-manipulation active:bg-surface"
-          aria-label="关闭"
+          aria-label={t("close")}
           onClick={onClose}
         >
           <Dismiss24Regular className="size-6 text-muted" aria-hidden />
@@ -70,16 +74,19 @@ export default function PetSwitcher({
                 >
                   <SpeciesIcon species={cat.species} />
                   <span className="flex-1 text-sm font-medium text-ink">
-                    {cat.name} · {cat.weightKg.toFixed(1)}kg
+                    {cat.name} · {formatWeight(cat.weightKg)}
                   </span>
                   {isActive ? (
-                    <Checkmark24Regular className="size-5 text-accent" aria-label="当前选中" />
+                    <Checkmark24Regular
+                      className="size-5 text-accent"
+                      aria-label={t("selectedCurrent")}
+                    />
                   ) : null}
                 </button>
                 <button
                   type="button"
                   className="flex min-h-11 min-w-11 items-center justify-center rounded-full touch-manipulation active:bg-surface"
-                  aria-label={`编辑 ${cat.name}`}
+                  aria-label={t("editPet", { name: cat.name })}
                   onClick={() => onEdit(cat.id)}
                 >
                   <Settings24Regular className="size-5 text-muted" aria-hidden />
@@ -88,7 +95,7 @@ export default function PetSwitcher({
                   <button
                     type="button"
                     className="flex min-h-11 min-w-11 items-center justify-center rounded-full touch-manipulation active:bg-surface"
-                    aria-label={`删除 ${cat.name}`}
+                    aria-label={t("deletePet", { name: cat.name })}
                     onClick={() => onDelete(cat.id)}
                   >
                     <Delete24Regular className="size-5 text-muted" aria-hidden />
@@ -106,7 +113,7 @@ export default function PetSwitcher({
           className="w-full min-h-11 rounded-xl border border-accent bg-card px-3 py-2 text-sm font-medium text-accent touch-manipulation active:bg-accent/10"
           onClick={onAdd}
         >
-          ＋ 新增宠物
+          {t("addPet")}
         </button>
       </div>
     </div>
