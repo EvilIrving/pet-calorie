@@ -1,5 +1,7 @@
 # AGENTS.md
 
+**注意：CLAUDE.md 与 AGENTS.md 必须保持完全一致（仅首行标题不同）。修改任一处时，必须同步更新另一文件。**
+
 本项目的设计与产品规格见 `docs/SPEC.md`，技术选型以其「技术选型」表格为准。本文件补充 **组件（Component）编写要求**，所有 AI 与人工编码都需遵守。
 
 ## 规格优先流程
@@ -69,4 +71,5 @@
 
 ## 本地运行约束
 
-- **禁止启动 dev server**（`npm run dev` / `vite` 等）。验证改动只用 `tsc -b`（类型检查）、`biome check`（lint）、`vitest`（测试），不要拉起开发服务器或预览服务。
+- **统一使用 pnpm** 作为包管理器，禁止使用 npm / yarn（如 `pnpm add`、`pnpm run`、`pnpm exec`）。
+- **禁止启动 dev server**（`pnpm dev` / `vite` 等）。验证改动只用 `tsc -b`（类型检查）、`biome check`（lint）、`vitest`（测试），不要拉起开发服务器或预览服务。
