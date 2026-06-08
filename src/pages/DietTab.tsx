@@ -1,7 +1,13 @@
-import { DataTrending24Regular, Scales24Regular, Target24Regular } from "@fluentui/react-icons";
+import {
+  DataTrending24Regular,
+  Print24Regular,
+  Scales24Regular,
+  Target24Regular,
+} from "@fluentui/react-icons";
 import { useEffect, useMemo, useState } from "react";
 import FeedingCard from "../components/FeedingCard";
 import FeedingLogSheet from "../components/FeedingLogSheet";
+import PrintPlanSheet from "../components/PrintPlanSheet";
 import type { WeightChartPoint } from "../components/WeightChart";
 import WeightLogSheet from "../components/WeightLogSheet";
 import WeightTrendCard from "../components/WeightTrendCard";
@@ -24,6 +30,7 @@ import {
   summarizeFeeding,
 } from "../lib/feeding";
 import { getPlanTips, highestTipForKind, type PlanTip } from "../lib/planTips";
+import { buildPrintPlanData, type PrintPlanData } from "../lib/printPlan";
 import { calcDietReferenceWeightKg, summarizeWeightLogs } from "../lib/weightLog";
 import { useCatStore } from "../stores/catStore";
 import { useFoodStore } from "../stores/foodStore";
@@ -69,6 +76,7 @@ export default function DietTab() {
   const [feedingSheetOpen, setFeedingSheetOpen] = useState(false);
   const [todayFeeding, setTodayFeeding] = useState<FeedingLog | null>(null);
   const [feedingLogs, setFeedingLogs] = useState<FeedingLog[]>([]);
+  const [printPlanData, setPrintPlanData] = useState<PrintPlanData | null>(null);
 
   const today = toLocalDateString();
   const petId = activePet?.id;
@@ -217,6 +225,11 @@ export default function DietTab() {
     setWeightSheetOpen(true);
   };
 
+  const openPrintPlan = () => {
+    if (!activePet) return;
+    setPrintPlanData(buildPrintPlanData({ pet: activePet, foods, weightLogs }));
+  };
+
   const syncCatToLatest = async () => {
     if (petId == null) return;
     const latest = await db.weightLogs.where("petId").equals(petId).last();
@@ -307,6 +320,15 @@ export default function DietTab() {
             {tipText(planTip)}
           </p>
         ) : null}
+        <button
+          type="button"
+          className="mt-3 flex min-h-10 items-center gap-1.5 rounded-full bg-surface px-3 text-sm font-semibold text-accent touch-manipulation active:bg-line/60"
+          aria-label={t("openPrintPlan")}
+          onClick={openPrintPlan}
+        >
+          <Print24Regular className="size-5" aria-hidden />
+          {t("printPlan")}
+        </button>
       </section>
 
       <FeedingCard
@@ -358,6 +380,10 @@ export default function DietTab() {
           onClose={() => setFeedingSheetOpen(false)}
           onSave={saveFeedingLog}
         />
+      ) : null}
+
+      {printPlanData ? (
+        <PrintPlanSheet data={printPlanData} onClose={() => setPrintPlanData(null)} />
       ) : null}
     </div>
   );
